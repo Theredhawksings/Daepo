@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:/Program Files/Epic Games/UE_5.7/Engine/Build/BatchFiles/Build.bat\" MyProjectEditor Win64 Development -project=\"c:/Users/myeos/Documents/GitHub/Daepo/MyProject/MyProject.uproject\" -WaitMutex)"
+    ]
+  }
+}
