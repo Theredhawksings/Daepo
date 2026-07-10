@@ -8,6 +8,7 @@
 
 class UArrowComponent;
 class ADaePoProjectile;
+class UMaterialInterface;
 
 UCLASS()
 class MYPROJECT_API ADaePo : public AActor
@@ -16,6 +17,13 @@ class MYPROJECT_API ADaePo : public AActor
 
 public:
 	ADaePo();
+
+	/**
+	 * 미리보기(설치 전 고스트) 모드로 전환한다.
+	 * 활성화하면 발사/충돌을 끄고, PreviewMat 이 있으면 대포 재질을 그것으로 바꾼다.
+	 * 반드시 BeginPlay 전에(SpawnActorDeferred 후) 호출해야 발사 타이머/풀 생성을 건너뛴다.
+	 */
+	void SetPreviewMode(bool bEnabled, UMaterialInterface* PreviewMat = nullptr);
 
 protected:
 	virtual void BeginPlay() override;
@@ -73,4 +81,7 @@ private:
 
 	/** 주기적 발사 타이머 핸들 */
 	FTimerHandle FireTimerHandle;
+
+	/** 미리보기(고스트) 상태면 발사/풀 생성을 하지 않는다 */
+	bool bPreviewMode = false;
 };

@@ -36,9 +36,42 @@ ADaePo::ADaePo()
 	ProjectileClass = ADaePoProjectile::StaticClass();
 }
 
+void ADaePo::SetPreviewMode(bool bEnabled, UMaterialInterface* PreviewMat)
+{
+	bPreviewMode = bEnabled;
+
+	if (!bEnabled)
+	{
+		return;
+	}
+
+	// 미리보기는 충돌하지 않게(설치 라인트레이스/캐릭터를 방해하지 않도록)
+	SetActorEnableCollision(false);
+	if (CannonMesh)
+	{
+		CannonMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		// 파란 반투명 등 미리보기 재질을 모든 슬롯에 적용
+		if (PreviewMat)
+		{
+			const int32 NumMats = CannonMesh->GetNumMaterials();
+			for (int32 i = 0; i < NumMats; ++i)
+			{
+				CannonMesh->SetMaterial(i, PreviewMat);
+			}
+		}
+	}
+}
+
 void ADaePo::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 미리보기(고스트)는 발사 타이머/풀을 만들지 않는다.
+	if (bPreviewMode)
+	{
+		return;
+	}
 
 	UWorld* World = GetWorld();
 	if (!World || !ProjectileClass)
