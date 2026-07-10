@@ -26,9 +26,11 @@ ADaePo::ADaePo()
 	CannonMesh->SetRelativeScale3D(FVector(0.05f, 0.05f, 0.05f));
 
 	// --- 발사 위치/방향 (에디터에서 옮겨 지정) ---
+	// MuzzleArrow 는 0.05 로 축소된 메시의 자식이라 상대값이 스케일만큼 줄어든다.
+	// 실측으로 포구 끝이 되는 상대 위치(앞 3500, 위 3000)를 기본값으로 지정.
 	MuzzleArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("MuzzleArrow"));
 	MuzzleArrow->SetupAttachment(CannonMesh);
-	MuzzleArrow->SetRelativeLocation(FVector(100.0f, 0.0f, 0.0f)); // 포구 앞쪽 기본값
+	MuzzleArrow->SetRelativeLocation(FVector(3500.0f, 0.0f, 3000.0f));
 	MuzzleArrow->ArrowSize = 1.5f;
 	MuzzleArrow->SetHiddenInGame(true); // 화살표는 에디터에서만 보이게
 
@@ -60,6 +62,20 @@ void ADaePo::SetPreviewMode(bool bEnabled, UMaterialInterface* PreviewMat)
 				CannonMesh->SetMaterial(i, PreviewMat);
 			}
 		}
+	}
+}
+
+void ADaePo::SetPreviewMaterial(UMaterialInterface* Mat)
+{
+	if (!CannonMesh || !Mat)
+	{
+		return;
+	}
+
+	const int32 NumMats = CannonMesh->GetNumMaterials();
+	for (int32 i = 0; i < NumMats; ++i)
+	{
+		CannonMesh->SetMaterial(i, Mat);
 	}
 }
 

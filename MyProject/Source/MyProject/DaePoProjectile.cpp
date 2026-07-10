@@ -48,6 +48,12 @@ void ADaePoProjectile::Launch(const FVector& InLocation, const FVector& Directio
 
 	const FVector ShotDir = Direction.GetSafeNormal();
 
+	// 자기를 발사한 대포와는 충돌하지 않도록(포구에서 걸리는 것 방지)
+	if (AActor* OwnerActor = GetOwner())
+	{
+		MeshComp->IgnoreActorWhenMoving(OwnerActor, true);
+	}
+
 	// 위치/회전/크기 배치
 	SetActorLocation(InLocation, false, nullptr, ETeleportType::ResetPhysics);
 	SetActorRotation(ShotDir.Rotation());

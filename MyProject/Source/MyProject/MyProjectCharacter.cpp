@@ -12,6 +12,8 @@
 #include "InputActionValue.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
+#include "Engine/Engine.h"
+#include "EngineUtils.h"
 #include "DaePo.h"
 #include "MyProject.h"
 
@@ -155,15 +157,55 @@ void AMyProjectCharacter::Tick(float DeltaSeconds)
 		FTransform PlaceTM;
 		if (GetPlacementTransform(PlaceTM))
 		{
+			const FVector PlaceLoc = PlaceTM.GetLocation();
 			PreviewCannon->SetActorHiddenInGame(false);
-			PreviewCannon->SetActorLocationAndRotation(PlaceTM.GetLocation(), PlaceTM.GetRotation());
+			PreviewCannon->SetActorLocationAndRotation(PlaceLoc, PlaceTM.GetRotation());
+
+			// 겹침 검사 → 상태가 바뀔 때만 미리보기 색 전환(유효=파랑, 불가=빨강).
+			const bool bValid = IsPlacementValid(PlaceLoc);
+			if (bValid != bCanPlaceHere)
+			{
+				bCanPlaceHere = bValid;
+				UMaterialInterface* Mat = bValid ? PreviewMaterial : InvalidPreviewMaterial;
+				if (Mat)
+				{
+					PreviewCannon->SetPreviewMaterial(Mat);
+				}
+			}
 		}
 		else
 		{
 			// 유효한 지면이 없으면 잠시 숨긴다.
 			PreviewCannon->SetActorHiddenInGame(true);
+			bCanPlaceHere = false;
 		}
 	}
+}
+
+bool AMyProjectCharacter::IsPlacementValid(const FVector& Location) const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	// 이미 배치된 대포들과의 수평 거리를 검사. 미리보기 자신은 제외.
+	for (TActorIterator<ADaePo> It(World); It; ++It)
+	{
+		const ADaePo* Other = *It;
+		if (!Other || Other == PreviewCannon)
+		{
+			continue;
+		}
+
+		if (FVector::Dist2D(Other->GetActorLocation(), Location) < PlacementSpacing)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool AMyProjectCharacter::GetPlacementTransform(FTransform& OutTransform) const
@@ -251,6 +293,16 @@ void AMyProjectCharacter::ConfirmPlacement()
 	FTransform PlaceTM;
 	if (!GetPlacementTransform(PlaceTM))
 	{
+		return;
+	}
+
+	// 다른 대포와 너무 가까우면 설치 취소.
+	if (!IsPlacementValid(PlaceTM.GetLocation()))
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Red, TEXT("설치 불가: 다른 대포와 너무 가깝습니다."));
+		}
 		return;
 	}
 

@@ -25,6 +25,9 @@ public:
 	 */
 	void SetPreviewMode(bool bEnabled, UMaterialInterface* PreviewMat = nullptr);
 
+	/** 미리보기 상태에서 대포 재질만 교체(유효/불가 색 전환용) */
+	void SetPreviewMaterial(UMaterialInterface* Mat);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -50,11 +53,11 @@ protected:
 
 	/** 발사마다 속도에 더해지는 무작위 폭(±cm/s). 0이면 항상 일정. */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Fire|Random", meta = (ClampMin = "0.0"))
-	float SpeedRandomRange = 150.0f;
+	float SpeedRandomRange = 350.0f;
 
 	/** 발사 방향이 퍼지는 각도(도). 콘의 반각. 0이면 항상 정면. */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Fire|Random", meta = (ClampMin = "0.0", ClampMax = "45.0"))
-	float SpreadAngle = 3.0f;
+	float SpreadAngle = 7.0f;
 
 	/** 발사체 수명(초). 이 시간이 지나면 풀로 반환된다. */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Fire", meta = (ClampMin = "0.1"))
@@ -62,7 +65,7 @@ protected:
 
 	/** 발사되는 큐브 크기(스케일). 에디터에서 조정 가능. */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Fire", meta = (AllowPreserveRatio = "true"))
-	FVector ProjectileScale = FVector(0.05f, 0.05f, 0.05f);
+	FVector ProjectileScale = FVector(0.3f, 0.3f, 0.3f);
 
 	/** 미리 생성해 둘 발사체 풀 크기 */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Pool", meta = (ClampMin = "1"))
