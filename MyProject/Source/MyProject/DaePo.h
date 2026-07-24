@@ -9,6 +9,8 @@
 class UArrowComponent;
 class ADaePoProjectile;
 class UMaterialInterface;
+class USoundBase;
+class USoundAttenuation;
 
 UCLASS()
 class MYPROJECT_API ADaePo : public AActor
@@ -67,6 +69,34 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Fire", meta = (AllowPreserveRatio = "true"))
 	FVector ProjectileScale = FVector(0.3f, 0.3f, 0.3f);
 
+	/** 발사음. 포구 위치에서 3D 사운드로 재생된다. 비우면 무음. */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Sound")
+	TObjectPtr<USoundBase> FireSound;
+
+	/** 발사음 볼륨 배수 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Sound", meta = (ClampMin = "0.0"))
+	float FireSoundVolume = 1.0f;
+
+	/** 발사음 피치 무작위 폭(±). 0이면 항상 같은 톤. */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Sound", meta = (ClampMin = "0.0", ClampMax = "0.5"))
+	float FireSoundPitchRandom = 0.1f;
+
+	/** 발사음을 몇 초만 재생하고 끊을지. 0이면 끝까지 재생. */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Sound", meta = (ClampMin = "0.0"))
+	float FireSoundDuration = 0.3f;
+
+	/** 이 거리(cm) 안에서는 원래 볼륨으로 들린다 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Sound", meta = (ClampMin = "0.0"))
+	float SoundInnerRadius = 400.0f;
+
+	/** 위 반경을 벗어난 뒤 이 거리(cm)에 걸쳐 서서히 안 들리게 된다 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Sound", meta = (ClampMin = "0.0"))
+	float SoundFalloffDistance = 3000.0f;
+
+	/** 직접 만든 감쇠 에셋을 쓰고 싶을 때 지정. 비우면 위 두 값으로 자동 생성 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Sound")
+	TObjectPtr<USoundAttenuation> SoundAttenuationOverride;
+
 	/** 미리 생성해 둘 발사체 풀 크기 */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Pool", meta = (ClampMin = "1"))
 	int32 PoolSize = 20;
@@ -77,6 +107,13 @@ private:
 
 	/** 풀에서 비활성 발사체를 찾아 반환(없으면 동적 확장) */
 	ADaePoProjectile* GetPooledProjectile();
+
+	/** 사용할 거리 감쇠 설정을 반환(없으면 한 번 만들어 캐시) */
+	USoundAttenuation* GetSoundAttenuation();
+
+	/** 런타임에 생성한 감쇠 설정 캐시 */
+	UPROPERTY()
+	TObjectPtr<USoundAttenuation> RuntimeAttenuation;
 
 	/** 사전 생성된 발사체 풀 */
 	UPROPERTY()

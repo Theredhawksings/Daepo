@@ -250,6 +250,7 @@ void AMyProjectCharacter::ToggleBuildMode()
 	if (bInBuildMode)
 	{
 		bInBuildMode = false;
+		bCanPlaceHere = false;
 		if (PreviewCannon)
 		{
 			PreviewCannon->Destroy();
@@ -279,6 +280,10 @@ void AMyProjectCharacter::ToggleBuildMode()
 		Preview->SetPreviewMode(true, PreviewMaterial);
 		Preview->FinishSpawning(SpawnTM);
 		PreviewCannon = Preview;
+
+		// 방금 "유효(파랑)" 재질을 적용한 상태로 맞춰둔다.
+		// 이러면 첫 위치가 설치 불가일 때 Tick 에서 곧바로 빨강으로 전환된다.
+		bCanPlaceHere = true;
 	}
 }
 

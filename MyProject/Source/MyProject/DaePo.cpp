@@ -7,6 +7,10 @@
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundAttenuation.h"
+#include "Components/AudioComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ADaePo::ADaePo()
 {
@@ -36,6 +40,39 @@ ADaePo::ADaePo()
 
 	// 기본 발사체 클래스 지정
 	ProjectileClass = ADaePoProjectile::StaticClass();
+
+	// 기본 발사음 지정
+	static ConstructorHelpers::FObjectFinder<USoundBase> FireSoundAsset(
+		TEXT("/Script/Engine.SoundWave'/Game/MP_Bomb.MP_Bomb'"));
+	if (FireSoundAsset.Succeeded())
+	{
+		FireSound = FireSoundAsset.Object;
+	}
+}
+
+USoundAttenuation* ADaePo::GetSoundAttenuation()
+{
+	// 에디터에서 지정한 감쇠 에셋이 있으면 그것을 우선 사용
+	if (SoundAttenuationOverride)
+	{
+		return SoundAttenuationOverride;
+	}
+
+	// 없으면 반경/감쇠거리 값으로 한 번만 만들어 캐시
+	if (!RuntimeAttenuation)
+	{
+		RuntimeAttenuation = NewObject<USoundAttenuation>(this);
+
+		FSoundAttenuationSettings& Settings = RuntimeAttenuation->Attenuation;
+		Settings.bAttenuate = true;   // 거리에 따라 볼륨 감소
+		Settings.bSpatialize = true;  // 좌우 방향감 적용
+		Settings.DistanceAlgorithm = EAttenuationDistanceModel::NaturalSound; // 자연스러운 감쇠 곡선
+		Settings.AttenuationShape = EAttenuationShape::Sphere;
+		Settings.AttenuationShapeExtents = FVector(SoundInnerRadius, 0.0f, 0.0f);
+		Settings.FalloffDistance = SoundFalloffDistance;
+	}
+
+	return RuntimeAttenuation;
 }
 
 void ADaePo::SetPreviewMode(bool bEnabled, UMaterialInterface* PreviewMat)
@@ -137,6 +174,31 @@ void ADaePo::Fire()
 	const float ShotSpeed = FMath::Max(0.0f, MuzzleSpeed + FMath::FRandRange(-SpeedRandomRange, SpeedRandomRange));
 
 	Proj->Launch(SpawnLoc, ShotDir, ShotSpeed, ProjectileLifeTime, ProjectileScale);
+
+	// 발사음: 포구 위치에서 3D 재생. 매번 피치를 살짝 바꿔 반복감을 줄인다.
+	if (FireSound)
+	{
+		const float Pitch = 1.0f + FMath::FRandRange(-FireSoundPitchRandom, FireSoundPitchRandom);
+
+		// SpawnSoundAtLocation 은 오디오 컴포넌트를 돌려주므로 도중에 끊을 수 있다.
+		UAudioComponent* AudioComp = UGameplayStatics::SpawnSoundAtLocation(
+			this, FireSound, SpawnLoc, FRotator::ZeroRotator, FireSoundVolume, Pitch,
+			0.0f, GetSoundAttenuation());
+
+		// 지정 시간이 지나면 정지(0이면 끝까지 재생).
+		if (AudioComp && FireSoundDuration > 0.0f)
+		{
+			TWeakObjectPtr<UAudioComponent> WeakAudio(AudioComp);
+			FTimerHandle StopHandle;
+			GetWorldTimerManager().SetTimer(StopHandle, [WeakAudio]()
+			{
+				if (UAudioComponent* Comp = WeakAudio.Get())
+				{
+					Comp->Stop();
+				}
+			}, FireSoundDuration, false);
+		}
+	}
 }
 
 ADaePoProjectile* ADaePo::GetPooledProjectile()

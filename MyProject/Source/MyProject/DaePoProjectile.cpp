@@ -6,6 +6,10 @@
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundAttenuation.h"
+#include "Components/AudioComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ADaePoProjectile::ADaePoProjectile()
 {
@@ -36,15 +40,109 @@ ADaePoProjectile::ADaePoProjectile()
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 	ProjectileMovement->UpdatedComponent = MeshComp;
 	ProjectileMovement->bShouldBounce = true;          // 벽에 튕김
-	ProjectileMovement->Bounciness = 0.6f;             // 반발 계수
-	ProjectileMovement->Friction = 0.2f;               // 표면 마찰
 	ProjectileMovement->ProjectileGravityScale = 1.0f; // 대포처럼 포물선 낙하
 	ProjectileMovement->bAutoActivate = false;         // 발사 전까지 비활성(풀링)
+
+	// 튕김 횟수 집계 / 정지 시점 콜백 등록
+	ProjectileMovement->OnProjectileBounce.AddDynamic(this, &ADaePoProjectile::OnBounce);
+	ProjectileMovement->OnProjectileStop.AddDynamic(this, &ADaePoProjectile::OnStop);
+
+	// 기본 충돌음 지정
+	static ConstructorHelpers::FObjectFinder<USoundBase> ImpactSoundAsset(
+		TEXT("/Script/Engine.SoundWave'/Game/MP_Grenade.MP_Grenade'"));
+	if (ImpactSoundAsset.Succeeded())
+	{
+		ImpactSound = ImpactSoundAsset.Object;
+	}
+}
+
+USoundAttenuation* ADaePoProjectile::GetSoundAttenuation()
+{
+	// 에디터에서 지정한 감쇠 에셋이 있으면 그것을 우선 사용
+	if (SoundAttenuationOverride)
+	{
+		return SoundAttenuationOverride;
+	}
+
+	// 없으면 반경/감쇠거리 값으로 한 번만 만들어 캐시
+	if (!RuntimeAttenuation)
+	{
+		RuntimeAttenuation = NewObject<USoundAttenuation>(this);
+
+		FSoundAttenuationSettings& Settings = RuntimeAttenuation->Attenuation;
+		Settings.bAttenuate = true;   // 거리에 따라 볼륨 감소
+		Settings.bSpatialize = true;  // 좌우 방향감 적용
+		Settings.DistanceAlgorithm = EAttenuationDistanceModel::NaturalSound; // 자연스러운 감쇠 곡선
+		Settings.AttenuationShape = EAttenuationShape::Sphere;
+		Settings.AttenuationShapeExtents = FVector(SoundInnerRadius, 0.0f, 0.0f);
+		Settings.FalloffDistance = SoundFalloffDistance;
+	}
+
+	return RuntimeAttenuation;
+}
+
+void ADaePoProjectile::PlayImpactSound(const FVector& Location)
+{
+	if (!ImpactSound)
+	{
+		return;
+	}
+
+	// 오디오 컴포넌트를 받아둬야 도중에 끊을 수 있다.
+	UAudioComponent* AudioComp = UGameplayStatics::SpawnSoundAtLocation(
+		this, ImpactSound, Location, FRotator::ZeroRotator, ImpactSoundVolume, 1.0f,
+		0.0f, GetSoundAttenuation());
+
+	// 지정 시간이 지나면 정지(0이면 끝까지 재생).
+	if (AudioComp && ImpactSoundDuration > 0.0f)
+	{
+		TWeakObjectPtr<UAudioComponent> WeakAudio(AudioComp);
+		FTimerHandle StopHandle;
+		GetWorldTimerManager().SetTimer(StopHandle, [WeakAudio]()
+		{
+			if (UAudioComponent* Comp = WeakAudio.Get())
+			{
+				Comp->Stop();
+			}
+		}, ImpactSoundDuration, false);
+	}
+}
+
+void ADaePoProjectile::OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity)
+{
+	PlayImpactSound(ImpactResult.ImpactPoint);
+
+	// 0이면 횟수 제한 없음(수명 다할 때까지 튕김)
+	if (MaxBounces <= 0)
+	{
+		return;
+	}
+
+	if (++BounceCount >= MaxBounces)
+	{
+		Deactivate(); // 정해진 횟수를 넘기면 즉시 풀로 반환
+	}
+}
+
+void ADaePoProjectile::OnStop(const FHitResult& ImpactResult)
+{
+	// bDestroyOnImpact 면 첫 충돌에서 곧바로 여기로 온다(튕김이 꺼져 있으므로).
+	// 튕김 모드일 때는 속도가 죽어 멈춘 시점이며, 어느 쪽이든 풀로 반환한다.
+	PlayImpactSound(ImpactResult.ImpactPoint);
+	Deactivate();
 }
 
 void ADaePoProjectile::Launch(const FVector& InLocation, const FVector& Direction, float Speed, float LifeTime, const FVector& Scale)
 {
 	bInUse = true;
+	BounceCount = 0;
+
+	// 튕김 설정을 발사 시점에 적용(에디터에서 바꾼 값이 바로 반영되도록)
+	// bDestroyOnImpact 면 튕김을 꺼서 첫 충돌에 바로 멈추고 OnStop 으로 사라진다.
+	ProjectileMovement->bShouldBounce = !bDestroyOnImpact;
+	ProjectileMovement->Bounciness = Bounciness;
+	ProjectileMovement->Friction = BounceFriction;
+	ProjectileMovement->BounceVelocityStopSimulatingThreshold = BounceStopSpeed;
 
 	const FVector ShotDir = Direction.GetSafeNormal();
 
