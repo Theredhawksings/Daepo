@@ -9,6 +9,7 @@
 class UProjectileMovementComponent;
 class USoundBase;
 class USoundAttenuation;
+class UMaterialInterface;
 
 /**
  * 대포에서 발사되는 큐브 발사체.
@@ -97,6 +98,25 @@ protected:
 
 	/** 사용할 거리 감쇠 설정을 반환(없으면 한 번 만들어 캐시) */
 	USoundAttenuation* GetSoundAttenuation();
+
+	/** 충돌 지점에 디버그 구를 그릴지 여부 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact")
+	bool bShowImpactDebugSphere = true;
+
+	/** 디버그 구 반지름(cm) */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "1.0"))
+	float ImpactSphereRadius = 40.0f;
+
+	/** 디버그 구가 화면에 남아있는 시간(초) */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.1"))
+	float ImpactSphereDuration = 3.0f;
+
+	/** 디버그 구 색상 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact")
+	FColor ImpactSphereColor = FColor::Red;
+
+	/** 부딪힌 지점에 충돌구(디버그 구)를 그린다 */
+	void SpawnImpactDecal(const FVector& Location, const FVector& Normal);
 
 private:
 	/** 수명 종료 시 풀로 반환하는 타이머 */

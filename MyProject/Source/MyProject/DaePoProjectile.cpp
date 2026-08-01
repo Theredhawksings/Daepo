@@ -10,6 +10,7 @@
 #include "Sound/SoundAttenuation.h"
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 
 ADaePoProjectile::ADaePoProjectile()
 {
@@ -111,6 +112,7 @@ void ADaePoProjectile::PlayImpactSound(const FVector& Location)
 void ADaePoProjectile::OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity)
 {
 	PlayImpactSound(ImpactResult.ImpactPoint);
+	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
 
 	// 0이면 횟수 제한 없음(수명 다할 때까지 튕김)
 	if (MaxBounces <= 0)
@@ -129,7 +131,20 @@ void ADaePoProjectile::OnStop(const FHitResult& ImpactResult)
 	// bDestroyOnImpact 면 첫 충돌에서 곧바로 여기로 온다(튕김이 꺼져 있으므로).
 	// 튕김 모드일 때는 속도가 죽어 멈춘 시점이며, 어느 쪽이든 풀로 반환한다.
 	PlayImpactSound(ImpactResult.ImpactPoint);
+	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
 	Deactivate();
+}
+
+void ADaePoProjectile::SpawnImpactDecal(const FVector& Location, const FVector& Normal)
+{
+	if (!bShowImpactDebugSphere)
+	{
+		return;
+	}
+
+	// 충돌 지점에 와이어프레임 구를 그린다. Duration 이 지나면 자동으로 사라진다.
+	DrawDebugSphere(GetWorld(), Location, ImpactSphereRadius, 12, ImpactSphereColor,
+		false, ImpactSphereDuration, 0, 1.5f);
 }
 
 void ADaePoProjectile::Launch(const FVector& InLocation, const FVector& Direction, float Speed, float LifeTime, const FVector& Scale)
