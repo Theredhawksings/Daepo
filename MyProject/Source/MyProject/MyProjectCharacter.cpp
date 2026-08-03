@@ -253,6 +253,15 @@ void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 
 	const float OldHealth = Health;
 	Health = FMath::Clamp(Health - DamageAmount, 0.0f, MaxHealth);
+	const float ActualDamage = OldHealth - Health;
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
+			FString::Printf(TEXT("피해량: -%.0f (체력 %.0f -> %.0f)"), ActualDamage, OldHealth, Health));
+	}
+
+	UE_LOG(LogMyProject, Log, TEXT("피해량: -%.1f (체력 %.1f -> %.1f)"), ActualDamage, OldHealth, Health);
 
 	OnHealthChanged(Health, Health - OldHealth);
 

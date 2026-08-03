@@ -176,8 +176,8 @@ void ADaePoProjectile::SpawnImpactDecal(const FVector& Location, const FVector& 
 		return;
 	}
 
-	// 충돌 지점에 와이어프레임 구를 그린다. Duration 이 지나면 자동으로 사라진다.
-	DrawDebugSphere(GetWorld(), Location, ImpactSphereRadius, 12, ImpactSphereColor,
+	// 충돌 지점에 실제 피해 범위(DamageRadius) 크기의 와이어프레임 구를 그린다. Duration 이 지나면 자동으로 사라진다.
+	DrawDebugSphere(GetWorld(), Location, DamageRadius, 12, ImpactSphereColor,
 		false, ImpactSphereDuration, 0, 1.5f);
 }
 

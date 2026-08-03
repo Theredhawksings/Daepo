@@ -103,10 +103,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Impact")
 	bool bShowImpactDebugSphere = true;
 
-	/** 디버그 구 반지름(cm) */
-	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "1.0"))
-	float ImpactSphereRadius = 40.0f;
-
 	/** 디버그 구가 화면에 남아있는 시간(초) */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.1"))
 	float ImpactSphereDuration = 3.0f;
