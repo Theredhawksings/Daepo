@@ -11,6 +11,8 @@
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "Engine/OverlapResult.h"
+#include "MyProjectCharacter.h"
 
 ADaePoProjectile::ADaePoProjectile()
 {
@@ -109,10 +111,33 @@ void ADaePoProjectile::PlayImpactSound(const FVector& Location)
 	}
 }
 
+void ADaePoProjectile::ApplyAreaDamage(const FVector& Location)
+{
+	UWorld* World = GetWorld();
+	if (!World || DamageAmount <= 0.0f)
+	{
+		return;
+	}
+
+	TArray<FOverlapResult> Overlaps;
+	const FCollisionShape Sphere = FCollisionShape::MakeSphere(DamageRadius);
+	World->OverlapMultiByObjectType(Overlaps, Location, FQuat::Identity,
+		FCollisionObjectQueryParams(ECC_Pawn), Sphere);
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		if (AMyProjectCharacter* Player = Cast<AMyProjectCharacter>(Overlap.GetActor()))
+		{
+			Player->ApplyDamage(DamageAmount);
+		}
+	}
+}
+
 void ADaePoProjectile::OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity)
 {
 	PlayImpactSound(ImpactResult.ImpactPoint);
 	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
+	ApplyAreaDamage(ImpactResult.ImpactPoint);
 
 	// 0이면 횟수 제한 없음(수명 다할 때까지 튕김)
 	if (MaxBounces <= 0)
@@ -132,6 +157,7 @@ void ADaePoProjectile::OnStop(const FHitResult& ImpactResult)
 	// 튕김 모드일 때는 속도가 죽어 멈춘 시점이며, 어느 쪽이든 풀로 반환한다.
 	PlayImpactSound(ImpactResult.ImpactPoint);
 	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
+	ApplyAreaDamage(ImpactResult.ImpactPoint);
 	Deactivate();
 }
 

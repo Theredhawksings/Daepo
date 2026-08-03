@@ -244,6 +244,48 @@ bool AMyProjectCharacter::GetPlacementTransform(FTransform& OutTransform) const
 	return true;
 }
 
+void AMyProjectCharacter::ApplyDamage(float DamageAmount)
+{
+	if (bIsDead || DamageAmount <= 0.0f)
+	{
+		return;
+	}
+
+	const float OldHealth = Health;
+	Health = FMath::Clamp(Health - DamageAmount, 0.0f, MaxHealth);
+
+	OnHealthChanged(Health, Health - OldHealth);
+
+	if (Health <= 0.0f)
+	{
+		HandleDeath();
+	}
+}
+
+void AMyProjectCharacter::HandleDeath()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+	bIsDead = true;
+
+	// 더 이상 움직이거나 조작할 수 없게 막는다.
+	GetCharacterMovement()->DisableMovement();
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		PC->SetIgnoreMoveInput(true);
+		PC->SetIgnoreLookInput(true);
+	}
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GAME OVER"));
+	}
+
+	OnDeath();
+}
+
 void AMyProjectCharacter::ToggleBuildMode()
 {
 	// 이미 빌드 모드면 종료(미리보기 제거).

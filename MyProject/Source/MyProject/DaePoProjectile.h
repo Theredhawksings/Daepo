@@ -118,6 +118,17 @@ protected:
 	/** 부딪힌 지점에 충돌구(디버그 구)를 그린다 */
 	void SpawnImpactDecal(const FVector& Location, const FVector& Normal);
 
+	/** 충돌 지점 기준 피해 범위(cm). 이 안에 있는 캐릭터가 피해를 입는다 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Damage", meta = (ClampMin = "1.0"))
+	float DamageRadius = 200.0f;
+
+	/** 범위 안 캐릭터에게 줄 피해량 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Damage", meta = (ClampMin = "0.0"))
+	float DamageAmount = 10.0f;
+
+	/** 충돌 지점 주변 범위에 있는 캐릭터에게 피해를 준다 */
+	void ApplyAreaDamage(const FVector& Location);
+
 private:
 	/** 수명 종료 시 풀로 반환하는 타이머 */
 	FTimerHandle LifeTimerHandle;
