@@ -126,8 +126,16 @@ void ADaePoProjectile::ApplyAreaDamage(const FVector& Location)
 
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
-		if (AMyProjectCharacter* Player = Cast<AMyProjectCharacter>(Overlap.GetActor()))
+		AActor* HitActor = Overlap.GetActor();
+		if (AMyProjectCharacter* Player = Cast<AMyProjectCharacter>(HitActor))
 		{
+			// 같은 발사체가 튕기면서 같은 대상을 여러 번 때리는 것을 방지(대상 하나당 한 번만 피해).
+			if (DamagedActorsThisFlight.Contains(HitActor))
+			{
+				continue;
+			}
+			DamagedActorsThisFlight.Add(HitActor);
+
 			Player->ApplyDamage(DamageAmount);
 		}
 	}
@@ -177,6 +185,7 @@ void ADaePoProjectile::Launch(const FVector& InLocation, const FVector& Directio
 {
 	bInUse = true;
 	BounceCount = 0;
+	DamagedActorsThisFlight.Reset();
 
 	// 튕김 설정을 발사 시점에 적용(에디터에서 바꾼 값이 바로 반영되도록)
 	// bDestroyOnImpact 면 튕김을 꺼서 첫 충돌에 바로 멈추고 OnStop 으로 사라진다.

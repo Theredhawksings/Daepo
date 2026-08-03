@@ -120,7 +120,7 @@ protected:
 
 	/** 충돌 지점 기준 피해 범위(cm). 이 안에 있는 캐릭터가 피해를 입는다 */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Damage", meta = (ClampMin = "1.0"))
-	float DamageRadius = 200.0f;
+	float DamageRadius = 300.0f;
 
 	/** 범위 안 캐릭터에게 줄 피해량 */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Damage", meta = (ClampMin = "0.0"))
@@ -138,6 +138,9 @@ private:
 
 	/** 이번 발사에서 튕긴 횟수 */
 	int32 BounceCount = 0;
+
+	/** 이번 발사에서 이미 피해를 입힌 대상. 같은 발사체가 여러 번 튕겨도 대상 하나당 한 번만 피해를 준다 */
+	TSet<TWeakObjectPtr<AActor>> DamagedActorsThisFlight;
 
 	/** 런타임에 생성한 감쇠 설정 캐시 */
 	UPROPERTY()
