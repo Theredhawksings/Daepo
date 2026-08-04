@@ -11,6 +11,7 @@
 #include "Sound/SoundAttenuation.h"
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 
 ADaePo::ADaePo()
 {
@@ -113,6 +114,45 @@ void ADaePo::SetPreviewMaterial(UMaterialInterface* Mat)
 	for (int32 i = 0; i < NumMats; ++i)
 	{
 		CannonMesh->SetMaterial(i, Mat);
+	}
+}
+
+void ADaePo::DrawFireTrajectory() const
+{
+	if (!MuzzleArrow)
+	{
+		return;
+	}
+
+	// 실제 발사와 같은 조건(포구 위치/방향, 포구 속도, 중력)으로 궤적을 시뮬레이션.
+	// 무작위(퍼짐/속도)는 빼고 기준 궤적만 그린다.
+	FPredictProjectilePathParams Params;
+	Params.StartLocation = MuzzleArrow->GetComponentLocation();
+	Params.LaunchVelocity = MuzzleArrow->GetForwardVector() * MuzzleSpeed;
+	Params.bTraceWithCollision = true;              // 지형에 맞으면 거기서 궤적 종료
+	Params.ProjectileRadius = 10.0f;
+	Params.MaxSimTime = ProjectileLifeTime;
+	Params.SimFrequency = 15.0f;                    // 시뮬레이션 정밀도(초당 샘플 수)
+	Params.TraceChannel = ECC_Visibility;
+	Params.ActorsToIgnore.Add(const_cast<ADaePo*>(this));
+
+	FPredictProjectilePathResult Result;
+	UGameplayStatics::PredictProjectilePath(this, Params, Result);
+
+	// 샘플 지점들을 이어 포물선을 그린다(한 프레임만 유지 → 매 틱 갱신).
+	UWorld* World = GetWorld();
+	const int32 NumPoints = Result.PathData.Num();
+	for (int32 i = 1; i < NumPoints; ++i)
+	{
+		DrawDebugLine(World, Result.PathData[i - 1].Location, Result.PathData[i].Location,
+			FColor::Yellow, false, -1.0f, 0, 2.0f);
+	}
+
+	// 예상 착탄 지점 표시
+	if (Result.HitResult.bBlockingHit)
+	{
+		DrawDebugSphere(World, Result.HitResult.ImpactPoint, 25.0f, 12, FColor::Orange,
+			false, -1.0f, 0, 2.0f);
 	}
 }
 

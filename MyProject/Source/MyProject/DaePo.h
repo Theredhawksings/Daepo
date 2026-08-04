@@ -30,6 +30,9 @@ public:
 	/** 미리보기 상태에서 대포 재질만 교체(유효/불가 색 전환용) */
 	void SetPreviewMaterial(UMaterialInterface* Mat);
 
+	/** 현재 포구 기준 발사 궤적을 한 프레임 동안 그린다(빌드 모드 미리보기용) */
+	void DrawFireTrajectory() const;
+
 protected:
 	virtual void BeginPlay() override;
 

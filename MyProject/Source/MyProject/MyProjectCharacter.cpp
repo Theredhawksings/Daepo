@@ -161,6 +161,9 @@ void AMyProjectCharacter::Tick(float DeltaSeconds)
 			PreviewCannon->SetActorHiddenInGame(false);
 			PreviewCannon->SetActorLocationAndRotation(PlaceLoc, PlaceTM.GetRotation());
 
+			// 이 위치에 설치하면 어디로 날아가는지 포물선 궤적 미리보기
+			PreviewCannon->DrawFireTrajectory();
+
 			// 겹침 검사 → 상태가 바뀔 때만 미리보기 색 전환(유효=파랑, 불가=빨강).
 			const bool bValid = IsPlacementValid(PlaceLoc);
 			if (bValid != bCanPlaceHere)
