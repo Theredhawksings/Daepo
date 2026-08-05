@@ -53,13 +53,19 @@ protected:
 	TObjectPtr<UTextRenderComponent> TimerText;
 
 private:
-	/** 경과 시간(초) */
-	float ElapsedSeconds = 0.0f;
+	/** 실행 중일 때, 이번 구간이 시작된 실제(벽시계) 시각. FPlatformTime::Seconds() 기준 */
+	double SegmentStartRealSeconds = 0.0;
+
+	/** 이전에 정지/리셋되기 전까지 누적된 경과 시간(초) */
+	double AccumulatedSeconds = 0.0;
 
 	bool bRunning = false;
 
 	/** 마지막으로 표시한 초(불필요한 SetText 호출 방지용) */
 	int32 LastDisplayedSeconds = -1;
+
+	/** 현재 총 경과 시간(초)을 실제 벽시계 기준으로 계산 */
+	double GetElapsedSeconds() const;
 
 	void UpdateDisplayedText(bool bForce = false);
 };

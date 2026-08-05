@@ -2,6 +2,7 @@
 
 #include "DaePoTimerActor.h"
 #include "Components/TextRenderComponent.h"
+#include "HAL/PlatformTime.h"
 
 ADaePoTimerActor::ADaePoTimerActor()
 {
@@ -43,29 +44,50 @@ void ADaePoTimerActor::Tick(float DeltaSeconds)
 		return;
 	}
 
-	ElapsedSeconds += DeltaSeconds;
+	// Tick 의 DeltaSeconds 를 누적하지 않고, 실제 벽시계 기준으로 경과 시간을 계산한다.
+	// (프레임 히칭 시 엔진이 DeltaSeconds 를 clamp 해서 실제 시간보다 느려지는 것을 방지)
 	UpdateDisplayedText();
 }
 
 void ADaePoTimerActor::StartTimer()
 {
+	if (bRunning)
+	{
+		return;
+	}
+	SegmentStartRealSeconds = FPlatformTime::Seconds();
 	bRunning = true;
 }
 
 void ADaePoTimerActor::StopTimer()
 {
+	if (!bRunning)
+	{
+		return;
+	}
+	AccumulatedSeconds += FPlatformTime::Seconds() - SegmentStartRealSeconds;
 	bRunning = false;
 }
 
 void ADaePoTimerActor::ResetTimer()
 {
-	ElapsedSeconds = 0.0f;
+	AccumulatedSeconds = 0.0;
+	SegmentStartRealSeconds = FPlatformTime::Seconds();
 	UpdateDisplayedText(true);
+}
+
+double ADaePoTimerActor::GetElapsedSeconds() const
+{
+	if (!bRunning)
+	{
+		return AccumulatedSeconds;
+	}
+	return AccumulatedSeconds + (FPlatformTime::Seconds() - SegmentStartRealSeconds);
 }
 
 void ADaePoTimerActor::UpdateDisplayedText(bool bForce)
 {
-	const int32 TotalSeconds = FMath::FloorToInt(ElapsedSeconds);
+	const int32 TotalSeconds = FMath::FloorToInt(GetElapsedSeconds());
 	if (!bForce && TotalSeconds == LastDisplayedSeconds)
 	{
 		return;
