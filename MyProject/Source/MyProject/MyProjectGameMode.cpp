@@ -107,8 +107,9 @@ FText AMyProjectGameMode::FormatElapsedTime(double Seconds)
 	const int32 Hours = TotalSeconds / 3600;
 	const int32 Minutes = (TotalSeconds % 3600) / 60;
 	const int32 Secs = TotalSeconds % 60;
+	const int32 Centiseconds = FMath::FloorToInt((Seconds - TotalSeconds) * 100.0);
 
-	return FText::FromString(FString::Printf(TEXT("%02d:%02d:%02d"), Hours, Minutes, Secs));
+	return FText::FromString(FString::Printf(TEXT("%02d:%02d:%02d.%02d"), Hours, Minutes, Secs, Centiseconds));
 }
 
 void AMyProjectGameMode::TravelToNextLevel()

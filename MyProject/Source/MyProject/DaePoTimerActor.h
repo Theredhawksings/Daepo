@@ -38,8 +38,8 @@ protected:
 	TObjectPtr<UTextRenderComponent> TimerText;
 
 private:
-	/** 마지막으로 표시한 초(불필요한 SetText 호출 방지용) */
-	int32 LastDisplayedSeconds = -1;
+	/** 마지막으로 표시한 값(100분의 1초 단위, 불필요한 SetText 호출 방지용) */
+	int32 LastDisplayedCentiseconds = -1;
 
 	void UpdateDisplayedText(bool bForce = false);
 };

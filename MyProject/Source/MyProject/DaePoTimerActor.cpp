@@ -15,7 +15,7 @@ ADaePoTimerActor::ADaePoTimerActor()
 	TimerText->SetVerticalAlignment(EVRTA_TextCenter);
 	TimerText->SetWorldSize(TextWorldSize);
 	TimerText->SetTextRenderColor(TextColor);
-	TimerText->SetText(FText::FromString(TEXT("00:00:00")));
+	TimerText->SetText(FText::FromString(TEXT("00:00:00.00")));
 }
 
 void ADaePoTimerActor::BeginPlay()
@@ -44,12 +44,12 @@ void ADaePoTimerActor::UpdateDisplayedText(bool bForce)
 	}
 
 	const double Elapsed = GameMode->GetElapsedSurvivalSeconds();
-	const int32 TotalSeconds = FMath::FloorToInt(Elapsed);
-	if (!bForce && TotalSeconds == LastDisplayedSeconds)
+	const int32 TotalCentiseconds = FMath::FloorToInt(Elapsed * 100.0);
+	if (!bForce && TotalCentiseconds == LastDisplayedCentiseconds)
 	{
 		return;
 	}
-	LastDisplayedSeconds = TotalSeconds;
+	LastDisplayedCentiseconds = TotalCentiseconds;
 
 	TimerText->SetText(AMyProjectGameMode::FormatElapsedTime(Elapsed));
 }
