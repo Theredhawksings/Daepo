@@ -3,6 +3,9 @@
 #include "MyProjectGameMode.h"
 #include "HAL/PlatformTime.h"
 #include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
+#include "GameFramework/PlayerController.h"
+#include "MyProjectCharacter.h"
 
 AMyProjectGameMode::AMyProjectGameMode()
 {
@@ -34,11 +37,30 @@ void AMyProjectGameMode::Tick(float DeltaSeconds)
 	{
 		bCompleted = true;
 		StopSurvivalTimer();
+
+		// 다음 맵 이동 대기 시간 동안 플레이어를 무적으로 만든다.
+		if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+		{
+			if (AMyProjectCharacter* PlayerCharacter = Cast<AMyProjectCharacter>(PC->GetPawn()))
+			{
+				PlayerCharacter->SetInvulnerable(true);
+			}
+		}
+
 		OnSurvivalTimeReached();
 
 		if (bAutoTravelOnSuccess)
 		{
-			TravelToNextLevel();
+			if (TransitionDelay > 0.0f)
+			{
+				// 바로 이동하지 않고 TransitionDelay 만큼 멈춰있다가 이동한다.
+				GetWorldTimerManager().SetTimer(TransitionTimerHandle, this,
+					&AMyProjectGameMode::TravelToNextLevel, TransitionDelay, false);
+			}
+			else
+			{
+				TravelToNextLevel();
+			}
 		}
 	}
 }

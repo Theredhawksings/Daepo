@@ -35,6 +35,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	bool bAutoTravelOnSuccess = true;
 
+	/** 목표 시간 달성 후 실제로 다음 맵으로 이동하기까지 대기 시간(초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival", meta = (ClampMin = "0.0"))
+	float TransitionDelay = 3.0f;
+
 	/** 생존 타이머 시작(이미 실행 중이면 무시) */
 	UFUNCTION(BlueprintCallable, Category = "Survival")
 	void StartSurvivalTimer();
@@ -78,6 +82,9 @@ private:
 
 	/** 목표 시간 도달 처리를 한 번만 하기 위한 플래그 */
 	bool bCompleted = false;
+
+	/** TransitionDelay 만큼 대기했다가 TravelToNextLevel 을 호출하는 타이머 */
+	FTimerHandle TransitionTimerHandle;
 };
 
 
