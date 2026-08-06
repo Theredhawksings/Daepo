@@ -98,6 +98,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void ApplyDamage(float DamageAmount);
 
+	/** 무적 상태 on/off. 무적 중에는 ApplyDamage 가 무시된다(생존 성공 후 다음 맵 이동 대기 중 등에 사용) */
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void SetInvulnerable(bool bNewInvulnerable) { bInvulnerable = bNewInvulnerable; }
+
+	/** 현재 무적 상태인지 */
+	UFUNCTION(BlueprintPure, Category = "Health")
+	bool IsInvulnerable() const { return bInvulnerable; }
+
 	/** 사망했는지 여부 */
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsDead() const { return bIsDead; }
@@ -142,6 +150,9 @@ protected:
 
 	/** 이미 사망 처리되었는지(중복 처리 방지) */
 	bool bIsDead = false;
+
+	/** true 인 동안 ApplyDamage 무시 */
+	bool bInvulnerable = false;
 
 protected:
 

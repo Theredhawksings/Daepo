@@ -249,7 +249,7 @@ bool AMyProjectCharacter::GetPlacementTransform(FTransform& OutTransform) const
 
 void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 {
-	if (bIsDead || DamageAmount <= 0.0f)
+	if (bIsDead || bInvulnerable || DamageAmount <= 0.0f)
 	{
 		return;
 	}
