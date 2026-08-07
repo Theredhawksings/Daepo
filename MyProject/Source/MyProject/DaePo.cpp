@@ -15,8 +15,10 @@
 
 ADaePo::ADaePo()
 {
-	// 대포 본체는 움직이지 않으므로 액터 틱 비활성(최적화).
-	PrimaryActorTick.bCanEverTick = false;
+	// 틱은 가능하게 두되 꺼진 채 시작한다.
+	// bRandomMove 가 켜진 대포만 BeginPlay 에서 틱을 켠다(고정 대포는 비용 0 = 최적화).
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	// --- 대포 본체 메시 (루트) ---
 	CannonMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CannonMesh"));
@@ -192,6 +194,55 @@ void ADaePo::BeginPlay()
 
 	// --- 주기적 발사 타이머 ---
 	World->GetTimerManager().SetTimer(FireTimerHandle, this, &ADaePo::Fire, FireInterval, true, FireInterval);
+
+	// --- 무작위 이동 옵션이 켜져 있으면 틱 시작 ---
+	if (bRandomMove)
+	{
+		WanderAnchor = GetActorLocation(); // 설치 지점을 기준점으로 저장
+		PickNewWanderTarget();
+		SetActorTickEnabled(true);
+	}
+}
+
+void ADaePo::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (!bRandomMove || bWanderPaused)
+	{
+		return;
+	}
+
+	// 목표 지점을 향해 일정 속도로 부드럽게 이동
+	const FVector Current = GetActorLocation();
+	const FVector Next = FMath::VInterpConstantTo(Current, WanderTarget, DeltaTime, MoveSpeed);
+	SetActorLocation(Next);
+
+	// 도착하면 잠시 쉬었다가 다음 목표를 뽑는다
+	if (FVector::DistSquared(Next, WanderTarget) < FMath::Square(5.0f))
+	{
+		if (MovePauseTime > 0.0f)
+		{
+			bWanderPaused = true;
+			GetWorldTimerManager().SetTimer(WanderPauseHandle, [this]()
+			{
+				bWanderPaused = false;
+				PickNewWanderTarget();
+			}, MovePauseTime, false);
+		}
+		else
+		{
+			PickNewWanderTarget();
+		}
+	}
+}
+
+void ADaePo::PickNewWanderTarget()
+{
+	// 기준점(설치 지점) 주변 원 안에서 무작위 지점을 뽑는다. 높이는 유지(수평 이동만).
+	const float Angle = FMath::FRandRange(0.0f, 2.0f * PI);
+	const float Dist = FMath::FRandRange(MoveRadius * 0.3f, MoveRadius);
+	WanderTarget = WanderAnchor + FVector(FMath::Cos(Angle) * Dist, FMath::Sin(Angle) * Dist, 0.0f);
 }
 
 void ADaePo::Fire()

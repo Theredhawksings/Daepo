@@ -33,6 +33,8 @@ public:
 	/** 현재 포구 기준 발사 궤적을 한 프레임 동안 그린다(빌드 모드 미리보기용) */
 	void DrawFireTrajectory() const;
 
+	virtual void Tick(float DeltaTime) override;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -104,6 +106,22 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Pool", meta = (ClampMin = "1"))
 	int32 PoolSize = 20;
 
+	/** 체크하면 설치 지점 주변을 무작위로 살짝살짝 움직인다 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Move")
+	bool bRandomMove = false;
+
+	/** 설치 지점에서 벗어날 수 있는 최대 반경(cm) */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Move", meta = (ClampMin = "10.0", EditCondition = "bRandomMove"))
+	float MoveRadius = 200.0f;
+
+	/** 이동 속도(cm/s). 낮을수록 슬금슬금 움직인다 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Move", meta = (ClampMin = "1.0", EditCondition = "bRandomMove"))
+	float MoveSpeed = 80.0f;
+
+	/** 목표 지점 도착 후 다음 이동까지 쉬는 시간(초). 0이면 쉬지 않고 계속 이동 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Move", meta = (ClampMin = "0.0", EditCondition = "bRandomMove"))
+	float MovePauseTime = 1.0f;
+
 private:
 	/** 타이머에서 주기적으로 호출 */
 	void Fire();
@@ -127,4 +145,19 @@ private:
 
 	/** 미리보기(고스트) 상태면 발사/풀 생성을 하지 않는다 */
 	bool bPreviewMode = false;
+
+	/** 무작위 이동의 기준점(설치된 위치) */
+	FVector WanderAnchor = FVector::ZeroVector;
+
+	/** 현재 향해 가는 목표 지점 */
+	FVector WanderTarget = FVector::ZeroVector;
+
+	/** 도착 후 잠시 쉬는 중인지 */
+	bool bWanderPaused = false;
+
+	/** 쉬는 시간용 타이머 */
+	FTimerHandle WanderPauseHandle;
+
+	/** 기준점 주변에서 새 목표 지점을 뽑는다 */
+	void PickNewWanderTarget();
 };
