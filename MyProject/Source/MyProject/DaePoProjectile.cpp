@@ -11,6 +11,9 @@
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+#include "DaePoHitCameraShake.h"
 #include "Engine/OverlapResult.h"
 #include "MyProjectCharacter.h"
 
@@ -56,6 +59,29 @@ ADaePoProjectile::ADaePoProjectile()
 	if (ImpactSoundAsset.Succeeded())
 	{
 		ImpactSound = ImpactSoundAsset.Object;
+	}
+
+	// 기본 피격 카메라 흔들림 지정
+	HitCameraShake = UDaePoHitCameraShake::StaticClass();
+}
+
+void ADaePoProjectile::TryShakePlayer(const FHitResult& Hit) const
+{
+	if (!HitCameraShake)
+	{
+		return;
+	}
+
+	// 맞은 대상이 폰(캐릭터)이고, 그 폰을 플레이어가 조종 중일 때만 흔든다.
+	const APawn* HitPawn = Cast<APawn>(Hit.GetActor());
+	if (!HitPawn)
+	{
+		return;
+	}
+
+	if (APlayerController* PC = Cast<APlayerController>(HitPawn->GetController()))
+	{
+		PC->ClientStartCameraShake(HitCameraShake, HitShakeScale);
 	}
 }
 
@@ -145,6 +171,7 @@ void ADaePoProjectile::OnBounce(const FHitResult& ImpactResult, const FVector& I
 {
 	PlayImpactSound(ImpactResult.ImpactPoint);
 	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
+	TryShakePlayer(ImpactResult);
 	ApplyAreaDamage(ImpactResult.ImpactPoint);
 
 	// 0이면 횟수 제한 없음(수명 다할 때까지 튕김)
@@ -165,6 +192,7 @@ void ADaePoProjectile::OnStop(const FHitResult& ImpactResult)
 	// 튕김 모드일 때는 속도가 죽어 멈춘 시점이며, 어느 쪽이든 풀로 반환한다.
 	PlayImpactSound(ImpactResult.ImpactPoint);
 	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
+	TryShakePlayer(ImpactResult);
 	ApplyAreaDamage(ImpactResult.ImpactPoint);
 	Deactivate();
 }

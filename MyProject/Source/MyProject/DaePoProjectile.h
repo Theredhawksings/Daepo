@@ -114,6 +114,17 @@ protected:
 	/** 부딪힌 지점에 충돌구(디버그 구)를 그린다 */
 	void SpawnImpactDecal(const FVector& Location, const FVector& Normal);
 
+	/** 플레이어를 맞혔을 때 재생할 카메라 흔들림 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact")
+	TSubclassOf<UCameraShakeBase> HitCameraShake;
+
+	/** 카메라 흔들림 강도 배수 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.0"))
+	float HitShakeScale = 1.0f;
+
+	/** 맞은 대상이 플레이어면 카메라를 흔든다 */
+	void TryShakePlayer(const FHitResult& Hit) const;
+
 	/** 충돌 지점 기준 피해 범위(cm). 이 안에 있는 캐릭터가 피해를 입는다 */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Damage", meta = (ClampMin = "1.0"))
 	float DamageRadius = 300.0f;

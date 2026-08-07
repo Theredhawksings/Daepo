@@ -18,7 +18,8 @@ public class MyProject : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"EngineCameras"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
