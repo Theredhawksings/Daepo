@@ -195,10 +195,11 @@ void ADaePo::BeginPlay()
 	// --- 주기적 발사 타이머 ---
 	World->GetTimerManager().SetTimer(FireTimerHandle, this, &ADaePo::Fire, FireInterval, true, FireInterval);
 
-	// --- 무작위 이동 옵션이 켜져 있으면 틱 시작 ---
-	if (bRandomMove)
+	// --- 무작위 이동/회전 옵션이 켜져 있으면 틱 시작 ---
+	if (bRandomMove || bRandomRotate)
 	{
-		WanderAnchor = GetActorLocation(); // 설치 지점을 기준점으로 저장
+		WanderAnchor = GetActorLocation();          // 설치 지점을 기준점으로 저장
+		WanderAnchorYaw = GetActorRotation().Yaw;   // 설치 방향을 기준 각도로 저장
 		PickNewWanderTarget();
 		SetActorTickEnabled(true);
 	}
@@ -208,18 +209,32 @@ void ADaePo::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!bRandomMove || bWanderPaused)
+	if ((!bRandomMove && !bRandomRotate) || bWanderPaused)
 	{
 		return;
 	}
 
-	// 목표 지점을 향해 일정 속도로 부드럽게 이동
-	const FVector Current = GetActorLocation();
-	const FVector Next = FMath::VInterpConstantTo(Current, WanderTarget, DeltaTime, MoveSpeed);
-	SetActorLocation(Next);
+	bool bArrived = true;
 
-	// 도착하면 잠시 쉬었다가 다음 목표를 뽑는다
-	if (FVector::DistSquared(Next, WanderTarget) < FMath::Square(5.0f))
+	// 목표 지점을 향해 일정 속도로 부드럽게 이동
+	if (bRandomMove)
+	{
+		const FVector Next = FMath::VInterpConstantTo(GetActorLocation(), WanderTarget, DeltaTime, MoveSpeed);
+		SetActorLocation(Next);
+		bArrived &= FVector::DistSquared(Next, WanderTarget) < FMath::Square(5.0f);
+	}
+
+	// 목표 각도를 향해 일정 속도로 부드럽게 회전(Yaw만)
+	if (bRandomRotate)
+	{
+		FRotator Rot = GetActorRotation();
+		Rot.Yaw = FMath::FixedTurn(Rot.Yaw, WanderTargetYaw, RotateSpeed * DeltaTime);
+		SetActorRotation(Rot);
+		bArrived &= FMath::Abs(FMath::FindDeltaAngleDegrees(Rot.Yaw, WanderTargetYaw)) < 1.0f;
+	}
+
+	// 이동/회전이 모두 끝나면 잠시 쉬었다가 다음 목표를 뽑는다
+	if (bArrived)
 	{
 		if (MovePauseTime > 0.0f)
 		{
@@ -243,6 +258,9 @@ void ADaePo::PickNewWanderTarget()
 	const float Angle = FMath::FRandRange(0.0f, 2.0f * PI);
 	const float Dist = FMath::FRandRange(MoveRadius * 0.3f, MoveRadius);
 	WanderTarget = WanderAnchor + FVector(FMath::Cos(Angle) * Dist, FMath::Sin(Angle) * Dist, 0.0f);
+
+	// 설치 당시 방향 기준 ±RotateRange 안에서 새 목표 각도를 뽑는다.
+	WanderTargetYaw = WanderAnchorYaw + FMath::FRandRange(-RotateRange, RotateRange);
 }
 
 void ADaePo::Fire()

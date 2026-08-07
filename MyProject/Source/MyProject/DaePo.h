@@ -122,6 +122,18 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Move", meta = (ClampMin = "0.0", EditCondition = "bRandomMove"))
 	float MovePauseTime = 1.0f;
 
+	/** 체크하면 발사 방향(Yaw 각도)도 무작위로 살짝살짝 돌린다 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Move")
+	bool bRandomRotate = false;
+
+	/** 설치 당시 방향 기준 좌우로 최대 몇 도까지 돌아갈지 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Move", meta = (ClampMin = "0.0", ClampMax = "180.0", EditCondition = "bRandomRotate"))
+	float RotateRange = 60.0f;
+
+	/** 회전 속도(도/초). 낮을수록 천천히 돈다 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Move", meta = (ClampMin = "1.0", EditCondition = "bRandomRotate"))
+	float RotateSpeed = 45.0f;
+
 private:
 	/** 타이머에서 주기적으로 호출 */
 	void Fire();
@@ -151,6 +163,12 @@ private:
 
 	/** 현재 향해 가는 목표 지점 */
 	FVector WanderTarget = FVector::ZeroVector;
+
+	/** 설치 당시의 기준 Yaw 각도 */
+	float WanderAnchorYaw = 0.0f;
+
+	/** 현재 향해 도는 목표 Yaw 각도 */
+	float WanderTargetYaw = 0.0f;
 
 	/** 도착 후 잠시 쉬는 중인지 */
 	bool bWanderPaused = false;
