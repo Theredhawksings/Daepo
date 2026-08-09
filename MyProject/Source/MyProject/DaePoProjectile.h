@@ -122,8 +122,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.0"))
 	float HitShakeScale = 1.0f;
 
-	/** 맞은 대상이 플레이어면 카메라를 흔든다 */
-	void TryShakePlayer(const FHitResult& Hit) const;
+	/** 폭발 흔들림이 느껴지는 최대 거리(cm). 가까울수록 강하고 이 거리 밖은 안 흔들림 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.0"))
+	float ShakeRadius = 1000.0f;
+
+	/** 직격이면 최대 강도, 근처 폭발이면 거리 비례로 약하게 카메라를 흔든다 */
+	void ShakeNearbyPlayer(const FVector& Location, const AActor* DirectHitActor) const;
 
 	/** 충돌 지점 기준 피해 범위(cm). 이 안에 있는 캐릭터가 피해를 입는다 */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Damage", meta = (ClampMin = "1.0"))

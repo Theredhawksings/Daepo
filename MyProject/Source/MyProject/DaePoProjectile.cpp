@@ -65,23 +65,40 @@ ADaePoProjectile::ADaePoProjectile()
 	HitCameraShake = UDaePoHitCameraShake::StaticClass();
 }
 
-void ADaePoProjectile::TryShakePlayer(const FHitResult& Hit) const
+void ADaePoProjectile::ShakeNearbyPlayer(const FVector& Location, const AActor* DirectHitActor) const
 {
-	if (!HitCameraShake)
+	UWorld* World = GetWorld();
+	if (!HitCameraShake || !World)
 	{
 		return;
 	}
 
-	// 맞은 대상이 폰(캐릭터)이고, 그 폰을 플레이어가 조종 중일 때만 흔든다.
-	const APawn* HitPawn = Cast<APawn>(Hit.GetActor());
-	if (!HitPawn)
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
 	{
-		return;
-	}
+		APlayerController* PC = It->Get();
+		const APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+		if (!Pawn)
+		{
+			continue;
+		}
 
-	if (APlayerController* PC = Cast<APlayerController>(HitPawn->GetController()))
-	{
-		PC->ClientStartCameraShake(HitCameraShake, HitShakeScale);
+		float Scale = 0.0f;
+		if (Pawn == DirectHitActor)
+		{
+			// 직격: 최대 강도
+			Scale = 1.0f;
+		}
+		else if (ShakeRadius > 0.0f)
+		{
+			// 근처 폭발: 거리에 비례해 약해지고 ShakeRadius 밖은 0
+			const float Dist = FVector::Dist(Pawn->GetActorLocation(), Location);
+			Scale = FMath::Clamp(1.0f - Dist / ShakeRadius, 0.0f, 1.0f);
+		}
+
+		if (Scale > KINDA_SMALL_NUMBER)
+		{
+			PC->ClientStartCameraShake(HitCameraShake, Scale * HitShakeScale);
+		}
 	}
 }
 
@@ -171,7 +188,7 @@ void ADaePoProjectile::OnBounce(const FHitResult& ImpactResult, const FVector& I
 {
 	PlayImpactSound(ImpactResult.ImpactPoint);
 	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
-	TryShakePlayer(ImpactResult);
+	ShakeNearbyPlayer(ImpactResult.ImpactPoint, ImpactResult.GetActor());
 	ApplyAreaDamage(ImpactResult.ImpactPoint);
 
 	// 0이면 횟수 제한 없음(수명 다할 때까지 튕김)
@@ -192,7 +209,7 @@ void ADaePoProjectile::OnStop(const FHitResult& ImpactResult)
 	// 튕김 모드일 때는 속도가 죽어 멈춘 시점이며, 어느 쪽이든 풀로 반환한다.
 	PlayImpactSound(ImpactResult.ImpactPoint);
 	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
-	TryShakePlayer(ImpactResult);
+	ShakeNearbyPlayer(ImpactResult.ImpactPoint, ImpactResult.GetActor());
 	ApplyAreaDamage(ImpactResult.ImpactPoint);
 	Deactivate();
 }
