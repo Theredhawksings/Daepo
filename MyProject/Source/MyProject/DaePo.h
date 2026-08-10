@@ -134,6 +134,18 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Move", meta = (ClampMin = "1.0", EditCondition = "bRandomRotate"))
 	float RotateSpeed = 45.0f;
 
+	/** 발사 시 반동(뒤로 밀렸다 복귀) 사용 여부 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Recoil")
+	bool bRecoil = true;
+
+	/** 반동으로 뒤로 밀리는 거리(cm) */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Recoil", meta = (ClampMin = "0.0", EditCondition = "bRecoil"))
+	float RecoilDistance = 30.0f;
+
+	/** 원위치로 돌아오는 속도(보간 계수). 클수록 빨리 복귀 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Recoil", meta = (ClampMin = "0.1", EditCondition = "bRecoil"))
+	float RecoilRecoverSpeed = 6.0f;
+
 private:
 	/** 타이머에서 주기적으로 호출 */
 	void Fire();
@@ -178,4 +190,7 @@ private:
 
 	/** 기준점 주변에서 새 목표 지점을 뽑는다 */
 	void PickNewWanderTarget();
+
+	/** 아직 복귀하지 못한 반동 잔량(cm). 0이면 반동 없음 */
+	float CurrentRecoil = 0.0f;
 };

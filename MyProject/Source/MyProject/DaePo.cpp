@@ -209,6 +209,20 @@ void ADaePo::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// --- 반동 복귀: 남은 반동량을 줄이며 그만큼 앞으로 되돌린다(증분 방식이라 이동/회전과 공존) ---
+	if (CurrentRecoil > 0.0f)
+	{
+		const float NewRecoil = FMath::FInterpTo(CurrentRecoil, 0.0f, DeltaTime, RecoilRecoverSpeed);
+		AddActorLocalOffset(FVector(CurrentRecoil - NewRecoil, 0.0f, 0.0f));
+		CurrentRecoil = (NewRecoil < 0.1f) ? 0.0f : NewRecoil;
+
+		// 반동만을 위해 틱이 켜졌던 고정 대포는 복귀가 끝나면 다시 틱을 끈다(최적화)
+		if (CurrentRecoil <= 0.0f && !bRandomMove && !bRandomRotate)
+		{
+			SetActorTickEnabled(false);
+		}
+	}
+
 	if ((!bRandomMove && !bRandomRotate) || bWanderPaused)
 	{
 		return;
@@ -283,6 +297,14 @@ void ADaePo::Fire()
 	const float ShotSpeed = FMath::Max(0.0f, MuzzleSpeed + FMath::FRandRange(-SpeedRandomRange, SpeedRandomRange));
 
 	Proj->Launch(SpawnLoc, ShotDir, ShotSpeed, ProjectileLifeTime, ProjectileScale);
+
+	// 반동: 즉시 뒤로 밀리고, Tick 에서 서서히 원위치로 복귀
+	if (bRecoil && RecoilDistance > 0.0f)
+	{
+		AddActorLocalOffset(FVector(-RecoilDistance, 0.0f, 0.0f));
+		CurrentRecoil += RecoilDistance;
+		SetActorTickEnabled(true);
+	}
 
 	// 발사음: 포구 위치에서 3D 재생. 매번 피치를 살짝 바꿔 반복감을 줄인다.
 	if (FireSound)
