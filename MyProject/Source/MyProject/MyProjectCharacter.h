@@ -94,6 +94,20 @@ protected:
 	/** 사망 시 조작을 막고 게임을 종료 처리한다 */
 	void HandleDeath();
 
+	/** 사망 순간 세상이 느려지는 배율(1 = 정상 속도, 0.2 = 5배 느림) */
+	UPROPERTY(EditAnywhere, Category = "Health|Death", meta = (ClampMin = "0.05", ClampMax = "1.0"))
+	float DeathSlowMotionScale = 0.2f;
+
+	/** 사망 후 레벨이 재시작되기까지의 시간(실제 초, 슬로모션과 무관) */
+	UPROPERTY(EditAnywhere, Category = "Health|Death", meta = (ClampMin = "0.1"))
+	float DeathRestartDelay = 2.0f;
+
+	/** 슬로모션을 풀고 현재 레벨을 처음부터 다시 연다 */
+	void RestartLevel();
+
+	/** 사망 → 재시작 지연 타이머 */
+	FTimerHandle RestartTimerHandle;
+
 	/** 이미 사망 처리되었는지(중복 처리 방지) */
 	bool bIsDead = false;
 

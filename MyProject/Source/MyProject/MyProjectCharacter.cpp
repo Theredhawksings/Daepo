@@ -13,6 +13,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 #include "MyProject.h"
 
 AMyProjectCharacter::AMyProjectCharacter()
@@ -184,4 +186,18 @@ void AMyProjectCharacter::HandleDeath()
 	}
 
 	OnDeath();
+
+	// --- 슬로모션 → 잠시 후 레벨 재시작 ---
+	UGameplayStatics::SetGlobalTimeDilation(this, DeathSlowMotionScale);
+
+	// 타이머는 느려진 게임 시간으로 흐르므로, 실제 체감 시간(DeathRestartDelay)이 되도록 배율을 곱한다.
+	const float TimerDelay = DeathRestartDelay * DeathSlowMotionScale;
+	GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::RestartLevel, TimerDelay, false);
+}
+
+void AMyProjectCharacter::RestartLevel()
+{
+	// 시간 배율을 원래대로 돌리고 현재 레벨을 처음부터 다시 연다.
+	UGameplayStatics::SetGlobalTimeDilation(this, 1.0f);
+	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
 }
