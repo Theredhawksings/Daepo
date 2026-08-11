@@ -66,6 +66,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Fire|Random", meta = (ClampMin = "0.0", ClampMax = "45.0"))
 	float SpreadAngle = 7.0f;
 
+	/** 발사 간격에 더해지는 무작위 폭(±초). 0이면 항상 일정한 간격. */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Fire|Random", meta = (ClampMin = "0.0"))
+	float FireIntervalRandomRange = 0.4f;
+
 	/** 발사체 수명(초). 이 시간이 지나면 풀로 반환된다. */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Fire", meta = (ClampMin = "0.1"))
 	float ProjectileLifeTime = 5.0f;
@@ -149,6 +153,9 @@ protected:
 private:
 	/** 타이머에서 주기적으로 호출 */
 	void Fire();
+
+	/** 다음 발사를 무작위 간격으로 예약한다 */
+	void ScheduleNextShot();
 
 	/** 풀에서 비활성 발사체를 찾아 반환(없으면 동적 확장) */
 	ADaePoProjectile* GetPooledProjectile();

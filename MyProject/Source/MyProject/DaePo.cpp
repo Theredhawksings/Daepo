@@ -192,8 +192,8 @@ void ADaePo::BeginPlay()
 		}
 	}
 
-	// --- 주기적 발사 타이머 ---
-	World->GetTimerManager().SetTimer(FireTimerHandle, this, &ADaePo::Fire, FireInterval, true, FireInterval);
+	// --- 첫 발사 예약(이후 발사할 때마다 무작위 간격으로 다음 발사를 예약하는 체인) ---
+	ScheduleNextShot();
 
 	// --- 무작위 이동/회전 옵션이 켜져 있으면 틱 시작 ---
 	if (bRandomMove || bRandomRotate)
@@ -277,8 +277,19 @@ void ADaePo::PickNewWanderTarget()
 	WanderTargetYaw = WanderAnchorYaw + FMath::FRandRange(-RotateRange, RotateRange);
 }
 
+void ADaePo::ScheduleNextShot()
+{
+	// 기본 간격 ± 무작위 폭. 너무 짧아지지 않게 최소 0.1초 보장.
+	const float NextInterval = FMath::Max(0.1f,
+		FireInterval + FMath::FRandRange(-FireIntervalRandomRange, FireIntervalRandomRange));
+	GetWorldTimerManager().SetTimer(FireTimerHandle, this, &ADaePo::Fire, NextInterval, false);
+}
+
 void ADaePo::Fire()
 {
+	// 발사 성공 여부와 관계없이 다음 발사를 먼저 예약해 체인을 유지한다.
+	ScheduleNextShot();
+
 	ADaePoProjectile* Proj = GetPooledProjectile();
 	if (!Proj || !MuzzleArrow)
 	{
