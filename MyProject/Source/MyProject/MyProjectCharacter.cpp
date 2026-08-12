@@ -15,6 +15,8 @@
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "Animation/AnimSequence.h"
+#include "UObject/ConstructorHelpers.h"
 #include "MyProject.h"
 
 AMyProjectCharacter::AMyProjectCharacter()
@@ -53,6 +55,23 @@ AMyProjectCharacter::AMyProjectCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character)
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	// 방향별 사망 애니 기본값 (템플릿에 포함된 마네퀸 사망 애니)
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> DeathFrontAsset(
+		TEXT("/Game/Characters/Mannequins/Anims/Death/MM_Death_Front_01.MM_Death_Front_01"));
+	if (DeathFrontAsset.Succeeded()) { DeathAnimFront = DeathFrontAsset.Object; }
+
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> DeathBackAsset(
+		TEXT("/Game/Characters/Mannequins/Anims/Death/MM_Death_Back_01.MM_Death_Back_01"));
+	if (DeathBackAsset.Succeeded()) { DeathAnimBack = DeathBackAsset.Object; }
+
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> DeathLeftAsset(
+		TEXT("/Game/Characters/Mannequins/Anims/Death/MM_Death_Left_01.MM_Death_Left_01"));
+	if (DeathLeftAsset.Succeeded()) { DeathAnimLeft = DeathLeftAsset.Object; }
+
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> DeathRightAsset(
+		TEXT("/Game/Characters/Mannequins/Anims/Death/MM_Death_Right_01.MM_Death_Right_01"));
+	if (DeathRightAsset.Succeeded()) { DeathAnimRight = DeathRightAsset.Object; }
 }
 
 void AMyProjectCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -137,6 +156,14 @@ void AMyProjectCharacter::DoJumpEnd()
 	StopJumping();
 }
 
+void AMyProjectCharacter::ApplyDamageFromLocation(float DamageAmount, const FVector& SourceLocation)
+{
+	// 사망 시 쓰러질 방향을 알 수 있도록 피해 위치를 기록해 두고 일반 피해 처리로 넘긴다.
+	LastDamageSourceLocation = SourceLocation;
+	bHasDamageSource = true;
+	ApplyDamage(DamageAmount);
+}
+
 void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 {
 	if (bIsDead || bInvulnerable || DamageAmount <= 0.0f)
@@ -185,6 +212,12 @@ void AMyProjectCharacter::HandleDeath()
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GAME OVER"));
 	}
 
+	// 피해 방향에 맞는 사망 애니 재생(애님 블루프린트를 밀어내고 단일 애니로 전환)
+	if (UAnimSequence* DeathAnim = PickDeathAnim())
+	{
+		GetMesh()->PlayAnimation(DeathAnim, false);
+	}
+
 	OnDeath();
 
 	// --- 슬로모션 → 잠시 후 레벨 재시작 ---
@@ -193,6 +226,26 @@ void AMyProjectCharacter::HandleDeath()
 	// 타이머는 느려진 게임 시간으로 흐르므로, 실제 체감 시간(DeathRestartDelay)이 되도록 배율을 곱한다.
 	const float TimerDelay = DeathRestartDelay * DeathSlowMotionScale;
 	GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::RestartLevel, TimerDelay, false);
+}
+
+UAnimSequence* AMyProjectCharacter::PickDeathAnim() const
+{
+	// 피해 위치 정보가 없으면 기본(앞으로 쓰러짐)
+	if (!bHasDamageSource)
+	{
+		return DeathAnimFront;
+	}
+
+	// 폭발 지점 → 캐릭터 로컬 좌표계 기준으로 어느 쪽에서 맞았는지 계산
+	const FVector ToSource = (LastDamageSourceLocation - GetActorLocation()).GetSafeNormal2D();
+	const FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(ToSource);
+
+	// 맞은 반대 방향으로 쓰러진다: 앞에서 맞으면 뒤로, 오른쪽에서 맞으면 왼쪽으로.
+	if (FMath::Abs(LocalDir.X) >= FMath::Abs(LocalDir.Y))
+	{
+		return (LocalDir.X >= 0.0f) ? DeathAnimBack : DeathAnimFront;
+	}
+	return (LocalDir.Y >= 0.0f) ? DeathAnimLeft : DeathAnimRight;
 }
 
 void AMyProjectCharacter::RestartLevel()

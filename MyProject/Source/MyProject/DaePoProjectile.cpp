@@ -179,7 +179,8 @@ void ADaePoProjectile::ApplyAreaDamage(const FVector& Location)
 			}
 			DamagedActorsThisFlight.Add(HitActor);
 
-			Player->ApplyDamage(DamageAmount);
+			// 폭발 지점을 함께 넘겨 사망 시 쓰러지는 방향 판정에 쓰이게 한다.
+			Player->ApplyDamageFromLocation(DamageAmount, Location);
 		}
 	}
 }

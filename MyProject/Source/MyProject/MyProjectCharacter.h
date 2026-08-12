@@ -10,6 +10,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class UAnimSequence;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -66,6 +67,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void ApplyDamage(float DamageAmount);
 
+	/** 피해 발생 위치(폭발 지점)를 함께 기록하며 피해를 입는다. 사망 시 쓰러지는 방향 판정에 쓰인다. */
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void ApplyDamageFromLocation(float DamageAmount, const FVector& SourceLocation);
+
 	/** 무적 상태 on/off. 무적 중에는 ApplyDamage 가 무시된다(생존 성공 후 다음 맵 이동 대기 중 등에 사용) */
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void SetInvulnerable(bool bNewInvulnerable) { bInvulnerable = bNewInvulnerable; }
@@ -107,6 +112,31 @@ protected:
 
 	/** 사망 → 재시작 지연 타이머 */
 	FTimerHandle RestartTimerHandle;
+
+	/** 앞으로 쓰러지는 애니(뒤에서 맞았을 때) */
+	UPROPERTY(EditAnywhere, Category = "Health|Death")
+	TObjectPtr<UAnimSequence> DeathAnimFront;
+
+	/** 뒤로 넘어가는 애니(앞에서 맞았을 때) */
+	UPROPERTY(EditAnywhere, Category = "Health|Death")
+	TObjectPtr<UAnimSequence> DeathAnimBack;
+
+	/** 왼쪽으로 쓰러지는 애니(오른쪽에서 맞았을 때) */
+	UPROPERTY(EditAnywhere, Category = "Health|Death")
+	TObjectPtr<UAnimSequence> DeathAnimLeft;
+
+	/** 오른쪽으로 쓰러지는 애니(왼쪽에서 맞았을 때) */
+	UPROPERTY(EditAnywhere, Category = "Health|Death")
+	TObjectPtr<UAnimSequence> DeathAnimRight;
+
+	/** 마지막 피해가 날아온 위치(쓰러질 방향 판정용) */
+	FVector LastDamageSourceLocation = FVector::ZeroVector;
+
+	/** 위 값이 유효한지(위치 정보 없이 죽으면 기본 애니 사용) */
+	bool bHasDamageSource = false;
+
+	/** 피해 방향에 맞는 사망 애니를 고른다 */
+	UAnimSequence* PickDeathAnim() const;
 
 	/** 이미 사망 처리되었는지(중복 처리 방지) */
 	bool bIsDead = false;
