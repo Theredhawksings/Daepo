@@ -156,6 +156,9 @@ protected:
 	/** 다음 발사를 무작위 간격으로 예약한다 */
 	void ScheduleNextShot();
 
+	/** 지정 위치에서 지정 속도 벡터로 발사체 하나를 쏜다(풀 + 사운드 + 반동 공통 처리) */
+	void LaunchProjectile(const FVector& StartLoc, const FVector& Velocity);
+
 	/** 미리보기(고스트) 상태면 발사/풀 생성을 하지 않는다 */
 	bool bPreviewMode = false;
 

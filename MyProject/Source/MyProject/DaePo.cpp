@@ -290,8 +290,7 @@ void ADaePo::Fire()
 	// 발사 성공 여부와 관계없이 다음 발사를 먼저 예약해 체인을 유지한다.
 	ScheduleNextShot();
 
-	ADaePoProjectile* Proj = GetPooledProjectile();
-	if (!Proj || !MuzzleArrow)
+	if (!MuzzleArrow)
 	{
 		return;
 	}
@@ -307,7 +306,18 @@ void ADaePo::Fire()
 	// 속도에 ±무작위 폭 적용(음수 방지)
 	const float ShotSpeed = FMath::Max(0.0f, MuzzleSpeed + FMath::FRandRange(-SpeedRandomRange, SpeedRandomRange));
 
-	Proj->Launch(SpawnLoc, ShotDir, ShotSpeed, ProjectileLifeTime, ProjectileScale);
+	LaunchProjectile(SpawnLoc, ShotDir * ShotSpeed);
+}
+
+void ADaePo::LaunchProjectile(const FVector& StartLoc, const FVector& Velocity)
+{
+	ADaePoProjectile* Proj = GetPooledProjectile();
+	if (!Proj)
+	{
+		return;
+	}
+
+	Proj->Launch(StartLoc, Velocity.GetSafeNormal(), Velocity.Size(), ProjectileLifeTime, ProjectileScale);
 
 	// 반동: 즉시 뒤로 밀리고, Tick 에서 서서히 원위치로 복귀
 	if (bRecoil && RecoilDistance > 0.0f)
@@ -324,7 +334,7 @@ void ADaePo::Fire()
 
 		// SpawnSoundAtLocation 은 오디오 컴포넌트를 돌려주므로 도중에 끊을 수 있다.
 		UAudioComponent* AudioComp = UGameplayStatics::SpawnSoundAtLocation(
-			this, FireSound, SpawnLoc, FRotator::ZeroRotator, FireSoundVolume, Pitch,
+			this, FireSound, StartLoc, FRotator::ZeroRotator, FireSoundVolume, Pitch,
 			0.0f, GetSoundAttenuation());
 
 		// 지정 시간이 지나면 정지(0이면 끝까지 재생).
