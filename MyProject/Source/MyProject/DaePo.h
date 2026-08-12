@@ -150,13 +150,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Recoil", meta = (ClampMin = "0.1", EditCondition = "bRecoil"))
 	float RecoilRecoverSpeed = 6.0f;
 
-private:
-	/** 타이머에서 주기적으로 호출 */
-	void Fire();
+	/** 타이머에서 주기적으로 호출. 자식 클래스에서 발사 조건을 바꿀 수 있다 */
+	virtual void Fire();
 
 	/** 다음 발사를 무작위 간격으로 예약한다 */
 	void ScheduleNextShot();
 
+	/** 미리보기(고스트) 상태면 발사/풀 생성을 하지 않는다 */
+	bool bPreviewMode = false;
+
+private:
 	/** 풀에서 비활성 발사체를 찾아 반환(없으면 동적 확장) */
 	ADaePoProjectile* GetPooledProjectile();
 
@@ -173,9 +176,6 @@ private:
 
 	/** 주기적 발사 타이머 핸들 */
 	FTimerHandle FireTimerHandle;
-
-	/** 미리보기(고스트) 상태면 발사/풀 생성을 하지 않는다 */
-	bool bPreviewMode = false;
 
 	/** 무작위 이동의 기준점(설치된 위치) */
 	FVector WanderAnchor = FVector::ZeroVector;
