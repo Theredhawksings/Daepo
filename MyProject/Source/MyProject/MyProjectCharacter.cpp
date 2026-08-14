@@ -17,6 +17,7 @@
 #include "TimerManager.h"
 #include "Animation/AnimSequence.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Net/UnrealNetwork.h"
 #include "MyProject.h"
 
 AMyProjectCharacter::AMyProjectCharacter()
@@ -164,8 +165,31 @@ void AMyProjectCharacter::ApplyDamageFromLocation(float DamageAmount, const FVec
 	ApplyDamage(DamageAmount);
 }
 
+void AMyProjectCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMyProjectCharacter, Health);
+}
+
+void AMyProjectCharacter::OnRep_Health(float OldHealth)
+{
+	// 서버가 이미 계산을 끝낸 결과가 도착한 것. 여기서는 화면 반응만 한다.
+	OnHealthChanged(Health, Health - OldHealth);
+
+	if (Health <= 0.0f)
+	{
+		HandleDeath();
+	}
+}
+
 void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 {
+	// 체력 계산(권위 있는 값)은 서버만 한다. 결과는 Health 복제로 모든 클라이언트에 자동 전달된다.
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	if (bIsDead || bInvulnerable || DamageAmount <= 0.0f)
 	{
 		return;
@@ -200,6 +224,8 @@ void AMyProjectCharacter::HandleDeath()
 	bIsDead = true;
 
 	// 더 이상 움직이거나 조작할 수 없게 막는다.
+	// (움직임 정지는 각 머신에서 로컬로도 안전하게 반복 호출 가능. 컨트롤러 입력 차단은
+	//  이 폰을 소유한 머신에서만 실제로 의미가 있고, 그 외에서는 GetController() 가 null 이라 자동으로 무시된다.)
 	GetCharacterMovement()->DisableMovement();
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -207,25 +233,37 @@ void AMyProjectCharacter::HandleDeath()
 		PC->SetIgnoreLookInput(true);
 	}
 
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GAME OVER"));
-	}
-
-	// 피해 방향에 맞는 사망 애니 재생(애님 블루프린트를 밀어내고 단일 애니로 전환)
+	// 쓰러지는 모습은 모두의 화면에 보여야 하므로 애니메이션은 항상 재생한다.
+	// (서버에서 한 번, 그리고 이 폰을 보고 있는 각 클라이언트에서 Health 복제로 OnRep_Health 가
+	//  호출될 때 한 번, 총 두 경로로 실행되어 모든 머신의 화면에서 재생된다.)
 	if (UAnimSequence* DeathAnim = PickDeathAnim())
 	{
 		GetMesh()->PlayAnimation(DeathAnim, false);
 	}
 
-	OnDeath();
+	// "GAME OVER" 표시와 사망 이벤트는 실제로 그 폰을 조작하던 화면에서만 띄운다.
+	// (다른 플레이어가 죽는 걸 구경하는 화면에는 내가 죽은 게 아니므로 띄우지 않는다)
+	if (IsLocallyControlled())
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GAME OVER"));
+		}
+		OnDeath();
+	}
 
-	// --- 슬로모션 → 잠시 후 레벨 재시작 ---
-	UGameplayStatics::SetGlobalTimeDilation(this, DeathSlowMotionScale);
+	// --- 슬로모션 → 잠시 후 레벨 재시작. 서버만 발동시킨다. ---
+	// TimeDilation 은 WorldSettings 를 통해 엔진이 자동으로 모든 클라이언트에 복제하므로,
+	// 서버가 한 번만 걸면 모두의 화면이 함께 느려진다. 클라이언트가 각자 걸면 서로 다른
+	// 배율로 따로 놀거나 서버 값에 곧바로 덮어써진다.
+	if (HasAuthority())
+	{
+		UGameplayStatics::SetGlobalTimeDilation(this, DeathSlowMotionScale);
 
-	// 타이머는 느려진 게임 시간으로 흐르므로, 실제 체감 시간(DeathRestartDelay)이 되도록 배율을 곱한다.
-	const float TimerDelay = DeathRestartDelay * DeathSlowMotionScale;
-	GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::RestartLevel, TimerDelay, false);
+		// 타이머는 느려진 게임 시간으로 흐르므로, 실제 체감 시간(DeathRestartDelay)이 되도록 배율을 곱한다.
+		const float TimerDelay = DeathRestartDelay * DeathSlowMotionScale;
+		GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::RestartLevel, TimerDelay, false);
+	}
 }
 
 UAnimSequence* AMyProjectCharacter::PickDeathAnim() const
@@ -250,6 +288,14 @@ UAnimSequence* AMyProjectCharacter::PickDeathAnim() const
 
 void AMyProjectCharacter::RestartLevel()
 {
+	// 레벨 재시작은 서버만 실행한다. 서버가 OpenLevel 을 호출하면 접속해 있는 모든
+	// 클라이언트가 함께 그 맵으로 이동한다(서버 트래블). 클라이언트가 각자 로컬로
+	// OpenLevel 을 부르면 멀티플레이 세션에서 혼자 튕겨나가 딴 게임이 되어버린다.
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	// 시간 배율을 원래대로 돌리고 현재 레벨을 처음부터 다시 연다.
 	UGameplayStatics::SetGlobalTimeDilation(this, 1.0f);
 	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));

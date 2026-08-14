@@ -55,12 +55,14 @@ public:
 	/** Constructor */
 	AMyProjectCharacter();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	/** 최대 체력 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health")
 	float MaxHealth = 100.0f;
 
-	/** 현재 체력 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+	/** 현재 체력. 서버가 바꾸면 모든 클라이언트에 자동으로 복제되고 OnRep_Health 가 호출된다. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_Health, Category = "Health")
 	float Health = 100.0f;
 
 	/** 대포에 맞는 등으로 피해를 입는다. 체력이 0 이하가 되면 사망(게임 종료) 처리된다. */
@@ -91,6 +93,10 @@ protected:
 	/** 체력이 바뀔 때 호출(체력바 UI 갱신 등은 블루프린트에서 구현) */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Health")
 	void OnHealthChanged(float NewHealth, float Delta);
+
+	/** Health 가 서버에서 바뀌어 복제돼 도착했을 때 클라이언트에서 호출됨(서버 자신에게는 호출되지 않음) */
+	UFUNCTION()
+	void OnRep_Health(float OldHealth);
 
 	/** 체력이 0이 되어 사망(게임 종료)했을 때 호출(게임오버 UI/재시작 등은 블루프린트에서 구현) */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Health")

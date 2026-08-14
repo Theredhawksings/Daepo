@@ -168,6 +168,14 @@ void ADaePo::BeginPlay()
 		return;
 	}
 
+	// 발사 판정(언제/어디로 쏠지)은 서버만 한다. 클라이언트가 각자 계산하면
+	// 서버와 클라이언트마다 다른 무작위값으로 큐브가 나가 화면이 서로 어긋난다.
+	// 클라이언트에서는 풀도 만들지 않고 타이머도 걸지 않는다(발사체는 서버가 복제해서 보여준다).
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	UWorld* World = GetWorld();
 	if (!World || !ProjectileClass)
 	{
@@ -287,6 +295,12 @@ void ADaePo::ScheduleNextShot()
 
 void ADaePo::Fire()
 {
+	// 서버가 아니면 절대 발사하지 않는다(이중 안전장치, BeginPlay 가드와 별개로).
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	// 발사 성공 여부와 관계없이 다음 발사를 먼저 예약해 체인을 유지한다.
 	ScheduleNextShot();
 

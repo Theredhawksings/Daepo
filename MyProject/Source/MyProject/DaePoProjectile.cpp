@@ -22,6 +22,11 @@ ADaePoProjectile::ADaePoProjectile()
 	// 액터 틱은 끈다. 이동은 ProjectileMovementComponent 가 자체적으로 처리한다(최적화).
 	PrimaryActorTick.bCanEverTick = false;
 
+	// 이 발사체는 서버에서만 스폰/발사되므로(대포가 HasAuthority() 로 가드됨),
+	// 클라이언트에서도 보이려면 액터 자체와 이동을 복제해야 한다.
+	SetReplicates(true);
+	SetReplicateMovement(true);
+
 	// --- 큐브 메시 (루트, 충돌 담당) ---
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
@@ -156,6 +161,14 @@ void ADaePoProjectile::PlayImpactSound(const FVector& Location)
 
 void ADaePoProjectile::ApplyAreaDamage(const FVector& Location)
 {
+	// 피해 판정은 서버만 한다. 클라이언트에도 이 발사체의 복제본이 있고
+	// 거기서도 충돌이 로컬로 감지될 수 있는데, 거기서까지 피해를 적용하면
+	// 서버와 다른 결과가 나오거나 중복 적용될 수 있다.
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	UWorld* World = GetWorld();
 	if (!World || DamageAmount <= 0.0f)
 	{
