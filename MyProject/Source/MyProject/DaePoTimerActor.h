@@ -41,5 +41,12 @@ private:
 	/** 마지막으로 표시한 값(100분의 1초 단위, 불필요한 SetText 호출 방지용) */
 	int32 LastDisplayedCentiseconds = -1;
 
-	void UpdateDisplayedText(bool bForce = false);
+	/**
+	 * 화면에 표시할 경과 시간(초). 서버가 보내는 값(GameState)은 네트워크 업데이트 주기로만
+	 * 갱신되어 계단식으로 보이므로, 이 값은 매 프레임 로컬에서 흘려보내고 서버 값과
+	 * 크게 벌어졌을 때만(초기 동기화, 일시정지 등) 스냅해서 보정한다.
+	 */
+	double DisplayedElapsedSeconds = 0.0;
+
+	void UpdateDisplayedText(double Elapsed, bool bForce = false);
 };
