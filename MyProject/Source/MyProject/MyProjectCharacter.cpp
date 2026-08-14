@@ -18,6 +18,8 @@
 #include "Animation/AnimSequence.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameStateBase.h"
 #include "MyProject.h"
 
 AMyProjectCharacter::AMyProjectCharacter()
@@ -199,13 +201,28 @@ void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 	Health = FMath::Clamp(Health - DamageAmount, 0.0f, MaxHealth);
 	const float ActualDamage = OldHealth - Health;
 
+	// GameState 의 플레이어 목록에서 내 순번을 찾아 "Player1", "Player2" 식으로 표시한다.
+	// (테스트/디버그용 — 어느 플레이어가 맞았는지 서버 화면에서 구분하기 위함)
+	FString PlayerLabel = TEXT("Player?");
+	if (const APlayerState* PS = GetPlayerState())
+	{
+		if (const AGameStateBase* GS = GetWorld() ? GetWorld()->GetGameState() : nullptr)
+		{
+			const int32 Index = GS->PlayerArray.IndexOfByKey(PS);
+			if (Index != INDEX_NONE)
+			{
+				PlayerLabel = FString::Printf(TEXT("Player%d"), Index + 1);
+			}
+		}
+	}
+
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
-			FString::Printf(TEXT("피해량: -%.0f (체력 %.0f -> %.0f)"), ActualDamage, OldHealth, Health));
+			FString::Printf(TEXT("%s 피해량: -%.0f (체력 %.0f -> %.0f)"), *PlayerLabel, ActualDamage, OldHealth, Health));
 	}
 
-	UE_LOG(LogMyProject, Log, TEXT("피해량: -%.1f (체력 %.1f -> %.1f)"), ActualDamage, OldHealth, Health);
+	UE_LOG(LogMyProject, Log, TEXT("%s 피해량: -%.1f (체력 %.1f -> %.1f)"), *PlayerLabel, ActualDamage, OldHealth, Health);
 
 	OnHealthChanged(Health, Health - OldHealth);
 

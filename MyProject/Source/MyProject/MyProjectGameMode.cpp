@@ -6,12 +6,16 @@
 #include "TimerManager.h"
 #include "GameFramework/PlayerController.h"
 #include "MyProjectCharacter.h"
+#include "DaePoGameState.h"
 
 AMyProjectGameMode::AMyProjectGameMode()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	NextLevel = TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/ThirdPerson/Lvl_ThirdPerson1.Lvl_ThirdPerson1")));
+
+	// 경과 시간을 클라이언트에도 보여주기 위해 복제되는 게임 스테이트를 사용한다.
+	GameStateClass = ADaePoGameState::StaticClass();
 }
 
 void AMyProjectGameMode::BeginPlay()
@@ -27,6 +31,13 @@ void AMyProjectGameMode::BeginPlay()
 void AMyProjectGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	// GameMode 는 서버에만 존재하므로 이 Tick 자체가 항상 서버에서만 실행된다.
+	// 클라이언트가 경과 시간을 볼 수 있도록 GameState(복제됨)에 매 틱 반영한다.
+	if (ADaePoGameState* DaePoGameState = GetGameState<ADaePoGameState>())
+	{
+		DaePoGameState->ReplicatedElapsedSeconds = static_cast<float>(GetElapsedSurvivalSeconds());
+	}
 
 	if (!bRunning || bCompleted || SurvivalDuration <= 0.0f)
 	{
