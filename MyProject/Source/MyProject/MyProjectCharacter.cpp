@@ -184,6 +184,16 @@ void AMyProjectCharacter::OnRep_Health(float OldHealth)
 	}
 }
 
+void AMyProjectCharacter::ClientShowDamageMessage_Implementation(const FString& PlayerLabel, float ActualDamage, float NewHealth)
+{
+	// Client RPC 라서 이 함수는 이 폰을 소유한 클라이언트에서만 실행된다.
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
+			FString::Printf(TEXT("[%s] 피해량: -%.0f (체력 %.0f)"), *PlayerLabel, ActualDamage, NewHealth));
+	}
+}
+
 void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 {
 	// 체력 계산(권위 있는 값)은 서버만 한다. 결과는 Health 복제로 모든 클라이언트에 자동 전달된다.
@@ -202,7 +212,7 @@ void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 	const float ActualDamage = OldHealth - Health;
 
 	// GameState 의 플레이어 목록에서 내 순번을 찾아 "Player1", "Player2" 식으로 표시한다.
-	// (테스트/디버그용 — 어느 플레이어가 맞았는지 서버 화면에서 구분하기 위함)
+	// (서버 로그 확인용 — 화면 메시지는 아래에서 각 플레이어 본인 화면에만 따로 띄운다)
 	FString PlayerLabel = TEXT("Player?");
 	if (const APlayerState* PS = GetPlayerState())
 	{
@@ -216,13 +226,10 @@ void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 		}
 	}
 
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
-			FString::Printf(TEXT("%s 피해량: -%.0f (체력 %.0f -> %.0f)"), *PlayerLabel, ActualDamage, OldHealth, Health));
-	}
-
 	UE_LOG(LogMyProject, Log, TEXT("%s 피해량: -%.1f (체력 %.1f -> %.1f)"), *PlayerLabel, ActualDamage, OldHealth, Health);
+
+	// 화면 메시지는 이 캐릭터를 소유한 클라이언트에서만 실행되므로, 맞은 당사자 화면에만 뜬다.
+	ClientShowDamageMessage(PlayerLabel, ActualDamage, Health);
 
 	OnHealthChanged(Health, Health - OldHealth);
 

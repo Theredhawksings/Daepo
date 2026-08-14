@@ -73,6 +73,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void ApplyDamageFromLocation(float DamageAmount, const FVector& SourceLocation);
 
+	/**
+	 * 이 폰을 소유한 클라이언트에서만 실행되는 디버그 메시지(서버가 호출).
+	 * 그래서 Player1 이 맞으면 Player1 화면에만, Player2 가 맞으면 Player2 화면에만 뜬다.
+	 */
+	UFUNCTION(Client, Reliable)
+	void ClientShowDamageMessage(const FString& PlayerLabel, float ActualDamage, float NewHealth);
+
 	/** 무적 상태 on/off. 무적 중에는 ApplyDamage 가 무시된다(생존 성공 후 다음 맵 이동 대기 중 등에 사용) */
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void SetInvulnerable(bool bNewInvulnerable) { bInvulnerable = bNewInvulnerable; }
