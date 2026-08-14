@@ -20,6 +20,7 @@ public:
 	ADaePoTurret();
 
 	virtual void Tick(float DeltaTime) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -43,6 +44,10 @@ private:
 	/** 감지 범위 안의 플레이어 폰을 반환(없으면 nullptr) */
 	APawn* FindPlayerInRange() const;
 
-	/** 이번 프레임 기준, 발사 가능한 대상이 범위 안에 있는지 */
+	/**
+	 * 이번 프레임 기준, 발사 가능한 대상이 범위 안에 있는지. 서버만 계산하고 복제해서
+	 * 클라이언트도 감지 원 색(빨강/하늘색)을 정확히 볼 수 있게 한다.
+	 */
+	UPROPERTY(Replicated)
 	bool bTargetInRange = false;
 };

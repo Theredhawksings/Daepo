@@ -140,6 +140,17 @@ protected:
 	/** 충돌 지점 주변 범위에 있는 캐릭터에게 피해를 준다 */
 	void ApplyAreaDamage(const FVector& Location);
 
+	/**
+	 * 충돌 시 사운드/디버그 구/카메라 흔들림을 서버와 모든 클라이언트에서 재생한다.
+	 * 이 발사체는 서버에서만 실제로 날아가므로(클라이언트 복제본은 이동 컴포넌트가
+	 * 비활성 상태라 OnBounce/OnStop 이 로컬에서 절대 발생하지 않는다), 서버가 확정한
+	 * 충돌 하나를 이 멀티캐스트로 모두에게 알려서 각자 화면에서 똑같이 재생하게 한다.
+	 * 피해 계산(ApplyAreaDamage)은 여기 포함하지 않는다 - 그건 서버만 하고
+	 * 결과(Health)는 별도로 복제되므로 중복 계산할 필요가 없다.
+	 */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlayImpactEffects(const FVector& Location, const FVector& Normal, AActor* HitActor);
+
 private:
 	/** 수명 종료 시 풀로 반환하는 타이머 */
 	FTimerHandle LifeTimerHandle;

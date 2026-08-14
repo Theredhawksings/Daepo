@@ -7,6 +7,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "DrawDebugHelpers.h"
 #include "MyProjectCharacter.h"
+#include "Net/UnrealNetwork.h"
 
 ADaePoTurret::ADaePoTurret()
 {
@@ -21,6 +22,12 @@ ADaePoTurret::ADaePoTurret()
 	// 추적 대포는 조준이 생명이므로 퍼짐/속도 무작위를 줄여 명중률을 높인다.
 	SpreadAngle = 2.0f;
 	SpeedRandomRange = 100.0f;
+}
+
+void ADaePoTurret::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ADaePoTurret, bTargetInRange);
 }
 
 void ADaePoTurret::BeginPlay()
@@ -50,19 +57,20 @@ void ADaePoTurret::Tick(float DeltaTime)
 		return;
 	}
 
-	// 조준 회전도 서버만 계산한다(대포 이동/회전과 같은 이유).
-	// 클라이언트는 ReplicatedYaw 로 복제된 회전값을 그대로 받아 보여준다.
-	if (!HasAuthority())
-	{
-		return;
-	}
-
-	// 감지 범위 표시(개발용). Shipping 빌드에서는 자동 제외된다.
+	// 감지 범위 표시(개발용, Shipping 빌드에서는 자동 제외됨)는 순수 시각 정보이므로
+	// 서버/클라이언트 모두에서 그린다. bTargetInRange 가 복제되므로 색도 양쪽에서 정확하다.
 	if (bShowDetectionRange)
 	{
 		DrawDebugCircle(GetWorld(), GetActorLocation(), DetectionRange, 32,
 			bTargetInRange ? FColor::Red : FColor::Cyan, false, -1.0f, 0, 2.0f,
 			FVector(1, 0, 0), FVector(0, 1, 0), false);
+	}
+
+	// 조준 회전(및 아래의 대상 판정)은 서버만 계산한다(대포 이동/회전과 같은 이유).
+	// 클라이언트는 ReplicatedYaw/bTargetInRange 로 복제된 값을 그대로 받아 보여준다.
+	if (!HasAuthority())
+	{
+		return;
 	}
 
 	APawn* Target = FindPlayerInRange();

@@ -198,11 +198,21 @@ void ADaePoProjectile::ApplyAreaDamage(const FVector& Location)
 	}
 }
 
+void ADaePoProjectile::MulticastPlayImpactEffects_Implementation(const FVector& Location, const FVector& Normal, AActor* HitActor)
+{
+	PlayImpactSound(Location);
+	SpawnImpactDecal(Location, Normal);
+	ShakeNearbyPlayer(Location, HitActor);
+}
+
 void ADaePoProjectile::OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity)
 {
-	PlayImpactSound(ImpactResult.ImpactPoint);
-	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
-	ShakeNearbyPlayer(ImpactResult.ImpactPoint, ImpactResult.GetActor());
+	// 이 콜백은 실제로는 서버에서만 발생한다(클라이언트의 복제본은 이동 컴포넌트가
+	// 비활성 상태). 그래도 방어적으로 가드해 둔다.
+	if (HasAuthority())
+	{
+		MulticastPlayImpactEffects(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal, ImpactResult.GetActor());
+	}
 	ApplyAreaDamage(ImpactResult.ImpactPoint);
 
 	// 0이면 횟수 제한 없음(수명 다할 때까지 튕김)
@@ -221,9 +231,10 @@ void ADaePoProjectile::OnStop(const FHitResult& ImpactResult)
 {
 	// bDestroyOnImpact 면 첫 충돌에서 곧바로 여기로 온다(튕김이 꺼져 있으므로).
 	// 튕김 모드일 때는 속도가 죽어 멈춘 시점이며, 어느 쪽이든 풀로 반환한다.
-	PlayImpactSound(ImpactResult.ImpactPoint);
-	SpawnImpactDecal(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal);
-	ShakeNearbyPlayer(ImpactResult.ImpactPoint, ImpactResult.GetActor());
+	if (HasAuthority())
+	{
+		MulticastPlayImpactEffects(ImpactResult.ImpactPoint, ImpactResult.ImpactNormal, ImpactResult.GetActor());
+	}
 	ApplyAreaDamage(ImpactResult.ImpactPoint);
 	Deactivate();
 }
