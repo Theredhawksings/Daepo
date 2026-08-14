@@ -34,9 +34,17 @@ public:
 	void DrawFireTrajectory() const;
 
 	virtual void Tick(float DeltaTime) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
+
+	/**
+	 * 사거리 안의 살아있는 플레이어 중 가장 가까운 폰을 찾는다.
+	 * GetPlayerPawn(0) 과 달리 서버에 접속한 모든(원격) 플레이어를 대상으로 하므로
+	 * 멀티플레이어에서 터렛/박격포가 특정 플레이어만 못 보는 문제가 없다.
+	 */
+	APawn* FindNearestPlayerInRange(float Range) const;
 
 	/** 대포 본체 메시 (루트) */
 	UPROPERTY(VisibleAnywhere, Category = "DaePo")
@@ -159,10 +167,30 @@ protected:
 	/** 지정 위치에서 지정 속도 벡터로 발사체 하나를 쏜다(풀 + 사운드 + 반동 공통 처리) */
 	void LaunchProjectile(const FVector& StartLoc, const FVector& Velocity);
 
+	/**
+	 * 서버가 계산한 현재 위치/Yaw 를 복제용 프로퍼티에 반영한다.
+	 * 부모 Tick 이후 자식 클래스(터렛 등)가 추가로 회전/이동을 적용했다면
+	 * 그 뒤에 한 번 더 호출해서 최종 값이 복제되게 해야 한다.
+	 */
+	void SyncReplicatedTransform();
+
 	/** 미리보기(고스트) 상태면 발사/풀 생성을 하지 않는다 */
 	bool bPreviewMode = false;
 
 private:
+	/** 서버가 갱신하는 실제 위치. 클라이언트는 이 값을 그대로 반영만 한다(직접 계산하지 않음). */
+	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedTransform)
+	FVector ReplicatedLocation = FVector::ZeroVector;
+
+	/** 서버가 갱신하는 실제 Yaw(좌우 방향). Location 과 함께 같은 네트워크 업데이트에 실려 온다. */
+	UPROPERTY(Replicated)
+	float ReplicatedYaw = 0.0f;
+
+	/** ReplicatedLocation 이 클라이언트에 도착했을 때 호출되어 실제로 액터를 그 위치/각도로 옮긴다 */
+	UFUNCTION()
+	void OnRep_ReplicatedTransform();
+
+
 	/** 풀에서 비활성 발사체를 찾아 반환(없으면 동적 확장) */
 	ADaePoProjectile* GetPooledProjectile();
 

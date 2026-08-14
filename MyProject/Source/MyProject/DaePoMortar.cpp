@@ -56,6 +56,14 @@ void ADaePoMortar::BeginPlay()
 
 void ADaePoMortar::Fire()
 {
+	// 이 오버라이드는 부모의 HasAuthority() 가드를 거치지 않고 통째로 대체하므로
+	// 여기서 직접 서버 여부를 확인해야 한다. 안 그러면 클라이언트도 독자적으로
+	// 각자의 목표/탄도를 계산해 서버와 다른 곳에 큐브가 떨어진다.
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	// 발사 여부와 관계없이 체인 유지
 	ScheduleNextShot();
 
@@ -64,20 +72,9 @@ void ADaePoMortar::Fire()
 		return;
 	}
 
-	// --- 대상 확인: 사거리 안의 살아있는 플레이어 ---
-	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
+	// --- 대상 확인: 접속한 모든 플레이어 중 사거리 안의 가장 가까운(살아있는) 플레이어 ---
+	APawn* Player = FindNearestPlayerInRange(MortarRange);
 	if (!Player)
-	{
-		return;
-	}
-	if (const AMyProjectCharacter* PC = Cast<AMyProjectCharacter>(Player))
-	{
-		if (PC->IsDead())
-		{
-			return;
-		}
-	}
-	if (FVector::Dist2D(Player->GetActorLocation(), GetActorLocation()) > MortarRange)
 	{
 		return;
 	}

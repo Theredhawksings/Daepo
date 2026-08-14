@@ -36,23 +36,8 @@ void ADaePoTurret::BeginPlay()
 
 APawn* ADaePoTurret::FindPlayerInRange() const
 {
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	if (!PlayerPawn)
-	{
-		return nullptr;
-	}
-
-	// 죽은 플레이어는 조준하지 않는다
-	if (const AMyProjectCharacter* Player = Cast<AMyProjectCharacter>(PlayerPawn))
-	{
-		if (Player->IsDead())
-		{
-			return nullptr;
-		}
-	}
-
-	const float Dist = FVector::Dist(PlayerPawn->GetActorLocation(), GetActorLocation());
-	return (Dist <= DetectionRange) ? PlayerPawn : nullptr;
+	// 접속한 모든 플레이어 중 사거리 안의 가장 가까운(살아있는) 폰을 찾는다.
+	return FindNearestPlayerInRange(DetectionRange);
 }
 
 void ADaePoTurret::Tick(float DeltaTime)
@@ -61,6 +46,13 @@ void ADaePoTurret::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (bPreviewMode)
+	{
+		return;
+	}
+
+	// 조준 회전도 서버만 계산한다(대포 이동/회전과 같은 이유).
+	// 클라이언트는 ReplicatedYaw 로 복제된 회전값을 그대로 받아 보여준다.
+	if (!HasAuthority())
 	{
 		return;
 	}
@@ -87,6 +79,9 @@ void ADaePoTurret::Tick(float DeltaTime)
 	FRotator Rot = GetActorRotation();
 	Rot.Yaw = FMath::FixedTurn(Rot.Yaw, TargetYaw, TrackRotateSpeed * DeltaTime);
 	SetActorRotation(Rot);
+
+	// 부모 Tick 이후 여기서 추가로 돈 만큼, 최종 각도를 다시 복제 프로퍼티에 반영한다.
+	SyncReplicatedTransform();
 }
 
 void ADaePoTurret::Fire()

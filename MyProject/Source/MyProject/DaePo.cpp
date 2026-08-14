@@ -12,9 +12,21 @@
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/Pawn.h"
+#include "MyProjectCharacter.h"
+#include "Net/UnrealNetwork.h"
 
 ADaePo::ADaePo()
 {
+	// 이 대포는 맵에 미리 배치되는 액터라 서버/클라이언트 모두에 이미 존재하지만,
+	// 무작위 이동/회전/반동으로 인한 실제 위치 변화는 서버만 계산하고(HasAuthority 가드),
+	// 그 결과 위치를 클라이언트에 복제해서 보여준다. 그래야 창마다 다르게 흔들리지 않는다.
+	// 엔진 내장 이동 복제(ReplicatedMovement) 대신 직접 만든 프로퍼티(ReplicatedLocation/Yaw)로
+	// 복제한다 — 부착 구조가 있는 박격포 등에서도 확실하게 동작하도록.
+	SetReplicates(true);
+	SetReplicateMovement(false);
+
 	// 틱은 가능하게 두되 꺼진 채 시작한다.
 	// bRandomMove 가 켜진 대포만 BeginPlay 에서 틱을 켠다(고정 대포는 비용 0 = 최적화).
 	PrimaryActorTick.bCanEverTick = true;
@@ -158,6 +170,48 @@ void ADaePo::DrawFireTrajectory() const
 	}
 }
 
+APawn* ADaePo::FindNearestPlayerInRange(float Range) const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	APawn* Best = nullptr;
+	float BestDistSq = FMath::Square(Range);
+
+	// GetPlayerPawn(0) 은 "이 머신의 로컬 플레이어"만 찾기 때문에, 서버에서 호출하면
+	// 네트워크로 접속한 다른 클라이언트의 폰은 절대 찾지 못한다(호스트 자신만 보임).
+	// 접속한 모든 플레이어 컨트롤러를 순회해야 멀티플레이어에서 제대로 동작한다.
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+		if (!Pawn)
+		{
+			continue;
+		}
+
+		if (const AMyProjectCharacter* Character = Cast<AMyProjectCharacter>(Pawn))
+		{
+			if (Character->IsDead())
+			{
+				continue;
+			}
+		}
+
+		const float DistSq = FVector::DistSquared(Pawn->GetActorLocation(), GetActorLocation());
+		if (DistSq <= BestDistSq)
+		{
+			BestDistSq = DistSq;
+			Best = Pawn;
+		}
+	}
+
+	return Best;
+}
+
 void ADaePo::BeginPlay()
 {
 	Super::BeginPlay();
@@ -217,6 +271,14 @@ void ADaePo::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// 실제 위치/회전을 바꾸는 계산(반동 복귀, 무작위 이동/회전)은 서버만 한다.
+	// 클라이언트가 각자 계산하면 무작위값이 서로 달라 창마다 다르게 흔들린다.
+	// 서버가 바꾼 결과는 ReplicatedLocation/ReplicatedYaw 로 복제되어 클라이언트에 반영된다.
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	// --- 반동 복귀: 남은 반동량을 줄이며 그만큼 앞으로 되돌린다(증분 방식이라 이동/회전과 공존) ---
 	if (CurrentRecoil > 0.0f)
 	{
@@ -233,6 +295,8 @@ void ADaePo::Tick(float DeltaTime)
 
 	if ((!bRandomMove && !bRandomRotate) || bWanderPaused)
 	{
+		// 반동만 처리하고 끝나는 경우도 있으므로, 여기서도 최신 위치를 복제 프로퍼티에 반영해야 한다.
+		SyncReplicatedTransform();
 		return;
 	}
 
@@ -272,6 +336,28 @@ void ADaePo::Tick(float DeltaTime)
 			PickNewWanderTarget();
 		}
 	}
+
+	// 이번 프레임에 계산된 최종 위치/각도를 복제 프로퍼티에 반영한다.
+	SyncReplicatedTransform();
+}
+
+void ADaePo::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ADaePo, ReplicatedLocation);
+	DOREPLIFETIME(ADaePo, ReplicatedYaw);
+}
+
+void ADaePo::SyncReplicatedTransform()
+{
+	ReplicatedLocation = GetActorLocation();
+	ReplicatedYaw = GetActorRotation().Yaw;
+}
+
+void ADaePo::OnRep_ReplicatedTransform()
+{
+	// 서버에서 온 최신 위치/각도를 그대로 반영한다(클라이언트는 스스로 계산하지 않음).
+	SetActorLocationAndRotation(ReplicatedLocation, FRotator(0.0f, ReplicatedYaw, 0.0f));
 }
 
 void ADaePo::PickNewWanderTarget()
