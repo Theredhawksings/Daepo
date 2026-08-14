@@ -177,6 +177,13 @@ protected:
 	/** 미리보기(고스트) 상태면 발사/풀 생성을 하지 않는다 */
 	bool bPreviewMode = false;
 
+	/**
+	 * true 면 반동이 다 회복돼도 틱을 끄지 않는다.
+	 * 터렛처럼 무작위 이동/회전은 안 쓰지만 매 프레임 자체 로직(플레이어 감지 등)이
+	 * 필요한 자식 클래스가 BeginPlay 등에서 true 로 설정해서 최적화(자동 틱 끄기)를 피한다.
+	 */
+	bool bAlwaysTick = false;
+
 private:
 	/** 서버가 갱신하는 실제 위치. 클라이언트는 이 값을 그대로 반영만 한다(직접 계산하지 않음). */
 	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedTransform)

@@ -22,6 +22,10 @@ ADaePoTurret::ADaePoTurret()
 	// 추적 대포는 조준이 생명이므로 퍼짐/속도 무작위를 줄여 명중률을 높인다.
 	SpreadAngle = 2.0f;
 	SpeedRandomRange = 100.0f;
+
+	// 터렛은 매 프레임 플레이어 감지/조준을 해야 하므로, 반동이 다 회복돼도
+	// 부모가 틱을 자동으로 끄지 않게 한다(안 그러면 첫 발사 후 감지 로직 자체가 멈춘다).
+	bAlwaysTick = true;
 }
 
 void ADaePoTurret::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

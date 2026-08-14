@@ -286,8 +286,9 @@ void ADaePo::Tick(float DeltaTime)
 		AddActorLocalOffset(FVector(CurrentRecoil - NewRecoil, 0.0f, 0.0f));
 		CurrentRecoil = (NewRecoil < 0.1f) ? 0.0f : NewRecoil;
 
-		// 반동만을 위해 틱이 켜졌던 고정 대포는 복귀가 끝나면 다시 틱을 끈다(최적화)
-		if (CurrentRecoil <= 0.0f && !bRandomMove && !bRandomRotate)
+		// 반동만을 위해 틱이 켜졌던 고정 대포는 복귀가 끝나면 다시 틱을 끈다(최적화).
+		// 단, bAlwaysTick 이 켜진 자식 클래스(터렛 등)는 매 프레임 자체 로직이 필요하므로 끄지 않는다.
+		if (CurrentRecoil <= 0.0f && !bRandomMove && !bRandomRotate && !bAlwaysTick)
 		{
 			SetActorTickEnabled(false);
 		}
