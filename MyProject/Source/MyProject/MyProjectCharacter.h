@@ -113,6 +113,7 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	/** PlayerState 가 늦게 복제돼 도착했을 때(원격 클라이언트) 호출 — 그 시점에 다시 색을 갱신한다 */
 	virtual void OnRep_PlayerState() override;
@@ -126,9 +127,9 @@ protected:
 	/** 순번별로 순환해서 쓸 플레이어 구분 색상 목록. 진하고 채도 높은 원색 위주. */
 	UPROPERTY(EditAnywhere, Category = "Player Color")
 	TArray<FLinearColor> PlayerColors = {
-		FLinearColor(0.0f, 0.3f, 1.0f),   // Player1: 진한 파랑
-		FLinearColor(1.0f, 0.0f, 0.0f),   // Player2: 진한 빨강
-		FLinearColor(0.0f, 1.0f, 0.1f),   // Player3: 진한 초록
+		FLinearColor(0.0f, 0.0f, 1.0f),   // Player1: 순수 파랑
+		FLinearColor(1.0f, 0.0f, 0.0f),   // Player2: 순수 빨강
+		FLinearColor(0.0f, 1.0f, 0.0f),   // Player3: 순수 초록
 		FLinearColor(1.0f, 0.85f, 0.0f)   // Player4: 진한 노랑
 	};
 

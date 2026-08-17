@@ -3,6 +3,7 @@
 #include "MyProjectCharacter.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Components/WidgetComponent.h"
@@ -23,10 +24,34 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameStateBase.h"
+#include "Widgets/SOverlay.h"
 #include "MyProject.h"
+
+namespace
+{
+	/** 검은 테두리 + 안쪽 원색 사각형. 배경(하늘 등)과 색이 비슷해도 테두리 덕분에 도드라져 보인다. */
+	TSharedRef<SWidget> MakePlayerColorMarkerWidget(const FLinearColor& Color)
+	{
+		return SNew(SOverlay)
+			+ SOverlay::Slot()
+			[
+				SNew(SColorBlock)
+				.Color(FLinearColor::Black)
+			]
+			+ SOverlay::Slot()
+			.Padding(6.0f)
+			[
+				SNew(SColorBlock)
+				.Color(Color)
+			];
+	}
+}
 
 AMyProjectCharacter::AMyProjectCharacter()
 {
+	// 색깔 마커를 매 프레임 카메라 쪽으로 회전시켜야 해서 틱이 필요하다.
+	PrimaryActorTick.bCanEverTick = true;
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -73,14 +98,14 @@ AMyProjectCharacter::AMyProjectCharacter()
 
 	// 색깔 마커: 캐릭터 머리 위에 붙는 3D 오브젝트(World Space). UMG/Slate 콘텐츠라
 	// 화면 공간 모드처럼 위치가 어긋나지 않고, 씬 조명의 영향도 받지 않아 항상 진하게 보인다.
+	// 검은 테두리를 둘러서 하늘처럼 색이 비슷한 배경 위에서도 도드라지게 한다.
 	PlayerColorMarker = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerColorMarker"));
 	PlayerColorMarker->SetupAttachment(RootComponent);
-	PlayerColorMarker->SetRelativeLocation(FVector(0.0f, 0.0f, 130.0f));
+	PlayerColorMarker->SetRelativeLocation(FVector(0.0f, 0.0f, 150.0f));
 	PlayerColorMarker->SetWidgetSpace(EWidgetSpace::World);
 	PlayerColorMarker->SetDrawAtDesiredSize(false);
-	PlayerColorMarker->SetDrawSize(FVector2D(20.0f, 20.0f));
-	PlayerColorMarker->SetWorldScale3D(FVector(0.5f)); // World Space 는 실제 크기 단위라 축소해서 적당한 크기로
-	PlayerColorMarker->SetSlateWidget(SNew(SColorBlock).Color(FLinearColor::White));
+	PlayerColorMarker->SetDrawSize(FVector2D(20.0f, 20.0f)); // World Space 는 1 유닛 = 1cm. 20 = 20cm 크기.
+	PlayerColorMarker->SetSlateWidget(MakePlayerColorMarkerWidget(FLinearColor::White));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character)
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -185,6 +210,26 @@ void AMyProjectCharacter::DoJumpEnd()
 	StopJumping();
 }
 
+void AMyProjectCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	// 색깔 마커가 항상 보는 사람을 정면으로 향하도록 매 프레임 회전시킨다(빌보드).
+	// 이 머신의 로컬 카메라를 기준으로 하므로, 서버/각 클라이언트가 각자 화면 기준으로
+	// 독립적으로 계산해도 된다(순수 표시용이라 굳이 서버 권위/복제가 필요 없음).
+	if (PlayerColorMarker)
+	{
+		if (const APlayerCameraManager* CamMgr = UGameplayStatics::GetPlayerCameraManager(this, 0))
+		{
+			const FVector ToCamera = CamMgr->GetCameraLocation() - PlayerColorMarker->GetComponentLocation();
+			if (!ToCamera.IsNearlyZero())
+			{
+				PlayerColorMarker->SetWorldRotation(ToCamera.Rotation());
+			}
+		}
+	}
+}
+
 void AMyProjectCharacter::ApplyDamageFromLocation(float DamageAmount, const FVector& SourceLocation)
 {
 	// 사망 시 쓰러질 방향을 알 수 있도록 피해 위치를 기록해 두고 일반 피해 처리로 넘긴다.
@@ -241,10 +286,10 @@ void AMyProjectCharacter::UpdatePlayerColor()
 		PlayerColorLight->SetLightColor(Color);
 	}
 
-	// 화면 고정 마커는 씬 조명과 무관하게 항상 이 원색 그대로 보인다(주 식별 수단).
+	// 색깔 마커는 씬 조명과 무관하게 항상 이 원색 그대로 보인다(주 식별 수단). 검은 테두리 포함.
 	if (PlayerColorMarker)
 	{
-		PlayerColorMarker->SetSlateWidget(SNew(SColorBlock).Color(Color));
+		PlayerColorMarker->SetSlateWidget(MakePlayerColorMarkerWidget(Color));
 	}
 }
 
