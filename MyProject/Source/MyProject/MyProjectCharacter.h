@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
 class UAnimSequence;
+class UPointLightComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -31,6 +32,13 @@ class AMyProjectCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
+
+	/**
+	 * 플레이어 구분용 색깔 표시등. 머리 위에서 순번별 색으로 빛나서 재질을 손댈 필요 없이
+	 * 화면에서 누가 Player1 이고 누가 Player2 인지 바로 구분할 수 있게 한다.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UPointLightComponent* PlayerColorLight;
 
 protected:
 
@@ -96,6 +104,23 @@ protected:
 
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void BeginPlay() override;
+
+	/** PlayerState 가 늦게 복제돼 도착했을 때(원격 클라이언트) 호출 — 그 시점에 다시 색을 갱신한다 */
+	virtual void OnRep_PlayerState() override;
+
+	/** 순번별로 순환해서 쓸 플레이어 구분 색상 목록. 필요하면 5번째, 6번째 플레이어 색도 추가 가능 */
+	UPROPERTY(EditAnywhere, Category = "Player Color")
+	TArray<FLinearColor> PlayerColors = {
+		FLinearColor(0.1f, 0.35f, 1.0f),  // Player1: 파랑
+		FLinearColor(1.0f, 0.15f, 0.1f),  // Player2: 빨강
+		FLinearColor(0.15f, 1.0f, 0.2f),  // Player3: 초록
+		FLinearColor(1.0f, 0.9f, 0.1f)    // Player4: 노랑
+	};
+
+	/** GameState 의 플레이어 목록에서 내 순번을 찾아 표시등 색을 갱신한다 */
+	void UpdatePlayerColor();
 
 	/** 체력이 바뀔 때 호출(체력바 UI 갱신 등은 블루프린트에서 구현) */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Health")

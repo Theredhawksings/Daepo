@@ -4,6 +4,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/PointLightComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -55,6 +56,18 @@ AMyProjectCharacter::AMyProjectCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	// 플레이어 구분용 색깔 표시등. 머리 위(캡슐보다 살짝 위)에 배치.
+	// 재질을 전혀 안 건드리고 순번별 색을 낼 수 있어 Substrate 머티리얼 그래프 작업이 필요 없다.
+	PlayerColorLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("PlayerColorLight"));
+	PlayerColorLight->SetupAttachment(RootComponent);
+	PlayerColorLight->SetRelativeLocation(FVector(0.0f, 0.0f, 130.0f));
+	PlayerColorLight->SetMobility(EComponentMobility::Movable);
+	PlayerColorLight->Intensity = 2000.0f;
+	PlayerColorLight->AttenuationRadius = 200.0f;
+	PlayerColorLight->SourceRadius = 5.0f;
+	PlayerColorLight->CastShadows = false;
+	PlayerColorLight->SetLightColor(FLinearColor::White); // 순번을 알기 전 기본값. BeginPlay 에서 갱신됨.
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character)
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -165,6 +178,41 @@ void AMyProjectCharacter::ApplyDamageFromLocation(float DamageAmount, const FVec
 	LastDamageSourceLocation = SourceLocation;
 	bHasDamageSource = true;
 	ApplyDamage(DamageAmount);
+}
+
+void AMyProjectCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// 서버 자신이나(로컬 플레이어) PlayerState 가 이미 준비된 경우를 위해 여기서 한 번 시도.
+	// 원격 클라이언트는 이 시점에 아직 PlayerState 복제가 안 왔을 수 있어 OnRep_PlayerState 에서 다시 시도한다.
+	UpdatePlayerColor();
+}
+
+void AMyProjectCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	// 원격 클라이언트에서 PlayerState 복제가 도착한 시점 — 이제야 내 순번을 알 수 있다.
+	UpdatePlayerColor();
+}
+
+void AMyProjectCharacter::UpdatePlayerColor()
+{
+	const APlayerState* PS = GetPlayerState();
+	const AGameStateBase* GS = GetWorld() ? GetWorld()->GetGameState() : nullptr;
+	if (!PS || !GS || PlayerColors.Num() == 0 || !PlayerColorLight)
+	{
+		return;
+	}
+
+	const int32 Index = GS->PlayerArray.IndexOfByKey(PS);
+	if (Index == INDEX_NONE)
+	{
+		return;
+	}
+
+	PlayerColorLight->SetLightColor(PlayerColors[Index % PlayerColors.Num()]);
 }
 
 void AMyProjectCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
