@@ -5,6 +5,8 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PointLightComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Widgets/Colors/SColorBlock.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -68,6 +70,17 @@ AMyProjectCharacter::AMyProjectCharacter()
 	PlayerColorLight->SourceRadius = 5.0f;
 	PlayerColorLight->CastShadows = false;
 	PlayerColorLight->SetLightColor(FLinearColor::White); // 순번을 알기 전 기본값. BeginPlay 에서 갱신됨.
+
+	// 색깔 마커: 캐릭터 머리 위에 붙는 3D 오브젝트(World Space). UMG/Slate 콘텐츠라
+	// 화면 공간 모드처럼 위치가 어긋나지 않고, 씬 조명의 영향도 받지 않아 항상 진하게 보인다.
+	PlayerColorMarker = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerColorMarker"));
+	PlayerColorMarker->SetupAttachment(RootComponent);
+	PlayerColorMarker->SetRelativeLocation(FVector(0.0f, 0.0f, 130.0f));
+	PlayerColorMarker->SetWidgetSpace(EWidgetSpace::World);
+	PlayerColorMarker->SetDrawAtDesiredSize(false);
+	PlayerColorMarker->SetDrawSize(FVector2D(20.0f, 20.0f));
+	PlayerColorMarker->SetWorldScale3D(FVector(0.5f)); // World Space 는 실제 크기 단위라 축소해서 적당한 크기로
+	PlayerColorMarker->SetSlateWidget(SNew(SColorBlock).Color(FLinearColor::White));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character)
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -197,11 +210,20 @@ void AMyProjectCharacter::OnRep_PlayerState()
 	UpdatePlayerColor();
 }
 
+void AMyProjectCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// 서버 기준: BeginPlay 는 Possess() 보다 먼저 실행되어 그때는 PlayerState 가 아직
+	// 없을 수 있다. 여기(Possess 시점)서 다시 시도해야 서버 화면에서도 색이 확실히 반영된다.
+	UpdatePlayerColor();
+}
+
 void AMyProjectCharacter::UpdatePlayerColor()
 {
 	const APlayerState* PS = GetPlayerState();
 	const AGameStateBase* GS = GetWorld() ? GetWorld()->GetGameState() : nullptr;
-	if (!PS || !GS || PlayerColors.Num() == 0 || !PlayerColorLight)
+	if (!PS || !GS || PlayerColors.Num() == 0)
 	{
 		return;
 	}
@@ -212,7 +234,18 @@ void AMyProjectCharacter::UpdatePlayerColor()
 		return;
 	}
 
-	PlayerColorLight->SetLightColor(PlayerColors[Index % PlayerColors.Num()]);
+	const FLinearColor Color = PlayerColors[Index % PlayerColors.Num()];
+
+	if (PlayerColorLight)
+	{
+		PlayerColorLight->SetLightColor(Color);
+	}
+
+	// 화면 고정 마커는 씬 조명과 무관하게 항상 이 원색 그대로 보인다(주 식별 수단).
+	if (PlayerColorMarker)
+	{
+		PlayerColorMarker->SetSlateWidget(SNew(SColorBlock).Color(Color));
+	}
 }
 
 void AMyProjectCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

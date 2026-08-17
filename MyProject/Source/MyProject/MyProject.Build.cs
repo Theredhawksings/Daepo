@@ -19,6 +19,7 @@ public class MyProject : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
+			"SlateCore",
 			"EngineCameras"
 		});
 

@@ -34,11 +34,18 @@ class AMyProjectCharacter : public ACharacter
 	UCameraComponent* FollowCamera;
 
 	/**
-	 * 플레이어 구분용 색깔 표시등. 머리 위에서 순번별 색으로 빛나서 재질을 손댈 필요 없이
-	 * 화면에서 누가 Player1 이고 누가 Player2 인지 바로 구분할 수 있게 한다.
+	 * 플레이어 구분용 색깔 표시등. 머리 위에서 순번별 색으로 빛나 은은한 림라이트 효과를 준다.
+	 * (씬 조명이 강하면 눈에 잘 안 띌 수 있어, 확실한 구분은 아래 화면 고정 마커가 담당)
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UPointLightComponent* PlayerColorLight;
+
+	/**
+	 * 플레이어 구분용 색깔 마커. 화면 공간(Screen Space)에 고정 크기로 그려지는 UI 라서
+	 * 씬 조명/거리/각도와 무관하게 항상 진한 원색 그대로 보인다. 재질 작업 불필요.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	class UWidgetComponent* PlayerColorMarker;
 
 protected:
 
@@ -110,13 +117,19 @@ protected:
 	/** PlayerState 가 늦게 복제돼 도착했을 때(원격 클라이언트) 호출 — 그 시점에 다시 색을 갱신한다 */
 	virtual void OnRep_PlayerState() override;
 
-	/** 순번별로 순환해서 쓸 플레이어 구분 색상 목록. 필요하면 5번째, 6번째 플레이어 색도 추가 가능 */
+	/**
+	 * 서버에서 이 폰에 컨트롤러가 연결되는 시점(Possess). BeginPlay 는 이보다 먼저 실행돼
+	 * 그때는 아직 PlayerState 가 없을 수 있으므로, 여기서 다시 한번 색을 갱신해야 한다.
+	 */
+	virtual void PossessedBy(AController* NewController) override;
+
+	/** 순번별로 순환해서 쓸 플레이어 구분 색상 목록. 진하고 채도 높은 원색 위주. */
 	UPROPERTY(EditAnywhere, Category = "Player Color")
 	TArray<FLinearColor> PlayerColors = {
-		FLinearColor(0.1f, 0.35f, 1.0f),  // Player1: 파랑
-		FLinearColor(1.0f, 0.15f, 0.1f),  // Player2: 빨강
-		FLinearColor(0.15f, 1.0f, 0.2f),  // Player3: 초록
-		FLinearColor(1.0f, 0.9f, 0.1f)    // Player4: 노랑
+		FLinearColor(0.0f, 0.3f, 1.0f),   // Player1: 진한 파랑
+		FLinearColor(1.0f, 0.0f, 0.0f),   // Player2: 진한 빨강
+		FLinearColor(0.0f, 1.0f, 0.1f),   // Player3: 진한 초록
+		FLinearColor(1.0f, 0.85f, 0.0f)   // Player4: 진한 노랑
 	};
 
 	/** GameState 의 플레이어 목록에서 내 순번을 찾아 표시등 색을 갱신한다 */
