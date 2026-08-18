@@ -124,13 +124,20 @@ protected:
 	 */
 	virtual void PossessedBy(AController* NewController) override;
 
-	/** 순번별로 순환해서 쓸 플레이어 구분 색상 목록. 진하고 채도 높은 원색 위주. */
+	/**
+	 * 순번별로 순환해서 쓸 플레이어 구분 색상 목록. 8명까지 서로 확실히 구별되는
+	 * 진한 원색/보색 위주로 구성. 9번째부터는 다시 처음 색부터 순환된다.
+	 */
 	UPROPERTY(EditAnywhere, Category = "Player Color")
 	TArray<FLinearColor> PlayerColors = {
-		FLinearColor(0.0f, 0.0f, 1.0f),   // Player1: 순수 파랑
-		FLinearColor(1.0f, 0.0f, 0.0f),   // Player2: 순수 빨강
-		FLinearColor(0.0f, 1.0f, 0.0f),   // Player3: 순수 초록
-		FLinearColor(1.0f, 0.85f, 0.0f)   // Player4: 진한 노랑
+		FLinearColor(0.0f, 0.0f, 1.0f),    // Player1: 파랑
+		FLinearColor(1.0f, 0.0f, 0.0f),    // Player2: 빨강
+		FLinearColor(0.0f, 1.0f, 0.0f),    // Player3: 초록
+		FLinearColor(1.0f, 0.85f, 0.0f),   // Player4: 노랑
+		FLinearColor(0.55f, 0.0f, 1.0f),   // Player5: 보라
+		FLinearColor(0.0f, 0.9f, 1.0f),    // Player6: 하늘색(시안)
+		FLinearColor(1.0f, 0.45f, 0.0f),   // Player7: 주황
+		FLinearColor(1.0f, 0.0f, 0.6f)     // Player8: 분홍
 	};
 
 	/** GameState 의 플레이어 목록에서 내 순번을 찾아 표시등 색을 갱신한다 */
