@@ -21,5 +21,13 @@ public:
 	UPROPERTY(Replicated)
 	float ReplicatedElapsedSeconds = 0.0f;
 
+	/**
+	 * 플레이어 구분 색상을 접속 순서대로 0번부터 배정하기 위한 서버 전용 카운터.
+	 * PlayerId 는 세션이 반복돼도 리셋되지 않고 계속 누적되는 값이라 색 배정 기준으로
+	 * 쓰기엔 부적합해서, 레벨(세션)마다 0부터 새로 시작하는 이 카운터를 대신 쓴다.
+	 * 서버만 사용하므로 복제할 필요 없다.
+	 */
+	int32 NextPlayerColorIndex = 0;
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

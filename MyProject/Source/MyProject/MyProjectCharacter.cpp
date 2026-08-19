@@ -23,6 +23,7 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameStateBase.h"
+#include "DaePoGameState.h"
 #include "MyProject.h"
 
 AMyProjectCharacter::AMyProjectCharacter()
@@ -185,16 +186,8 @@ void AMyProjectCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 서버 자신이나(로컬 플레이어) PlayerState 가 이미 준비된 경우를 위해 여기서 한 번 시도.
-	// 원격 클라이언트는 이 시점에 아직 PlayerState 복제가 안 왔을 수 있어 OnRep_PlayerState 에서 다시 시도한다.
-	UpdatePlayerColor();
-}
-
-void AMyProjectCharacter::OnRep_PlayerState()
-{
-	Super::OnRep_PlayerState();
-
-	// 원격 클라이언트에서 PlayerState 복제가 도착한 시점 — 이제야 내 순번을 알 수 있다.
+	// PlayerColorIndex 가 이미 복제돼 있는 경우(재접속 등)를 위해 한 번 시도.
+	// 아직 서버가 배정 전이면 PossessedBy(서버)/OnRep_PlayerColorIndex(클라이언트)에서 처리된다.
 	UpdatePlayerColor();
 }
 
@@ -202,27 +195,34 @@ void AMyProjectCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	// 서버 기준: BeginPlay 는 Possess() 보다 먼저 실행되어 그때는 PlayerState 가 아직
-	// 없을 수 있다. 여기(Possess 시점)서 다시 시도해야 서버 화면에서도 색이 확실히 반영된다.
+	// 서버에서만 실행됨. 아직 색이 배정 안 됐으면(-1) 이 레벨의 GameState 카운터에서
+	// 다음 번호를 받아 확정한다. 한 번 정해지면 절대 안 바뀌고, 이 값이 복제되어
+	// 모든 클라이언트가 똑같은 값을 받으므로 화면마다 색이 다르게 보이는 일이 없다.
+	if (PlayerColorIndex < 0)
+	{
+		if (ADaePoGameState* GS = GetWorld() ? GetWorld()->GetGameState<ADaePoGameState>() : nullptr)
+		{
+			PlayerColorIndex = GS->NextPlayerColorIndex++;
+		}
+	}
+
+	UpdatePlayerColor();
+}
+
+void AMyProjectCharacter::OnRep_PlayerColorIndex()
+{
+	// 클라이언트에서 서버가 배정한 색 번호가 막 도착한 시점 — 이제 색을 반영한다.
 	UpdatePlayerColor();
 }
 
 void AMyProjectCharacter::UpdatePlayerColor()
 {
-	const APlayerState* PS = GetPlayerState();
-	const AGameStateBase* GS = GetWorld() ? GetWorld()->GetGameState() : nullptr;
-	if (!PS || !GS || PlayerColors.Num() == 0)
+	if (PlayerColorIndex < 0 || PlayerColors.Num() == 0)
 	{
 		return;
 	}
 
-	const int32 Index = GS->PlayerArray.IndexOfByKey(PS);
-	if (Index == INDEX_NONE)
-	{
-		return;
-	}
-
-	const FLinearColor Color = PlayerColors[Index % PlayerColors.Num()];
+	const FLinearColor Color = PlayerColors[PlayerColorIndex % PlayerColors.Num()];
 
 	if (PlayerColorLight)
 	{
@@ -255,6 +255,7 @@ void AMyProjectCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMyProjectCharacter, Health);
+	DOREPLIFETIME(AMyProjectCharacter, PlayerColorIndex);
 }
 
 void AMyProjectCharacter::OnRep_Health(float OldHealth)

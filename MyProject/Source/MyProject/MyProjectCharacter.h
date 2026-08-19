@@ -104,14 +104,23 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	/** PlayerState 가 늦게 복제돼 도착했을 때(원격 클라이언트) 호출 — 그 시점에 다시 색을 갱신한다 */
-	virtual void OnRep_PlayerState() override;
-
 	/**
-	 * 서버에서 이 폰에 컨트롤러가 연결되는 시점(Possess). BeginPlay 는 이보다 먼저 실행돼
-	 * 그때는 아직 PlayerState 가 없을 수 있으므로, 여기서 다시 한번 색을 갱신해야 한다.
+	 * 서버에서 이 폰에 컨트롤러가 연결되는 시점(Possess). 여기서 서버가 이 플레이어의
+	 * 색 번호를 접속 순서대로 확정해서 PlayerColorIndex 에 배정한다(그 값이 복제되어
+	 * 모든 클라이언트에 전달됨 — 각 클라이언트가 따로 계산하지 않으므로 항상 일치한다).
 	 */
 	virtual void PossessedBy(AController* NewController) override;
+
+	/**
+	 * 서버가 접속 순서대로 배정한 색 번호(0부터 시작). PlayerColors 배열의 인덱스로 쓰인다.
+	 * -1 이면 아직 배정 전. 서버가 값을 정하고 복제하므로 모든 화면에서 항상 같은 색이 나온다.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_PlayerColorIndex)
+	int32 PlayerColorIndex = -1;
+
+	/** PlayerColorIndex 가 복제돼 도착했을 때(클라이언트) 호출 — 색을 갱신한다 */
+	UFUNCTION()
+	void OnRep_PlayerColorIndex();
 
 	/**
 	 * 순번별로 순환해서 쓸 플레이어 구분 색상 목록. 8명까지 서로 확실히 구별되는
@@ -140,7 +149,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class UMaterialInstanceDynamic> PlayerColorMID;
 
-	/** GameState 의 플레이어 목록에서 내 순번을 찾아 표시등/메시 색을 갱신한다 */
+	/** PlayerColorIndex 를 기준으로 표시등/메시 색을 갱신한다 */
 	void UpdatePlayerColor();
 
 	/** 체력이 바뀔 때 호출(체력바 UI 갱신 등은 블루프린트에서 구현) */
