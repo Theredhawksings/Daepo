@@ -33,19 +33,9 @@ class AMyProjectCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
-	/**
-	 * 플레이어 구분용 색깔 표시등. 머리 위에서 순번별 색으로 빛나 은은한 림라이트 효과를 준다.
-	 * (씬 조명이 강하면 눈에 잘 안 띌 수 있어, 확실한 구분은 아래 화면 고정 마커가 담당)
-	 */
+	/** 플레이어 구분용 색깔 표시등. 머리 위에서 순번별 색으로 빛나 은은한 림라이트 효과를 준다(보조 수단). */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UPointLightComponent* PlayerColorLight;
-
-	/**
-	 * 플레이어 구분용 색깔 마커. 화면 공간(Screen Space)에 고정 크기로 그려지는 UI 라서
-	 * 씬 조명/거리/각도와 무관하게 항상 진한 원색 그대로 보인다. 재질 작업 불필요.
-	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
-	class UWidgetComponent* PlayerColorMarker;
 
 protected:
 
@@ -113,7 +103,6 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
 
 	/** PlayerState 가 늦게 복제돼 도착했을 때(원격 클라이언트) 호출 — 그 시점에 다시 색을 갱신한다 */
 	virtual void OnRep_PlayerState() override;
@@ -140,7 +129,18 @@ protected:
 		FLinearColor(1.0f, 0.0f, 0.6f)     // Player8: 분홍
 	};
 
-	/** GameState 의 플레이어 목록에서 내 순번을 찾아 표시등 색을 갱신한다 */
+	/**
+	 * 캐릭터 메시를 통째로 물들이는 데 쓸 기본 재질. Vector Parameter 이름이 "Color" 인
+	 * 언릿(Unlit) 재질 하나만 있으면 된다. 비워두면 색 적용을 건너뛴다(라이트만 적용).
+	 */
+	UPROPERTY(EditAnywhere, Category = "Player Color")
+	TObjectPtr<class UMaterialInterface> PlayerColorMaterialBase;
+
+	/** 런타임에 생성해 재사용하는 동적 머티리얼 인스턴스 */
+	UPROPERTY()
+	TObjectPtr<class UMaterialInstanceDynamic> PlayerColorMID;
+
+	/** GameState 의 플레이어 목록에서 내 순번을 찾아 표시등/메시 색을 갱신한다 */
 	void UpdatePlayerColor();
 
 	/** 체력이 바뀔 때 호출(체력바 UI 갱신 등은 블루프린트에서 구현) */
