@@ -34,86 +34,108 @@ namespace
 
 TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 {
+	constexpr float ContentWidth = 260.0f;
+
 	return SNew(SBox)
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
-			// 반투명 어두운 패널로 메뉴 전체를 감싸서 빈 배경 위에 그냥 떠 있지 않게 한다.
+			// 바깥쪽 옅은 테두리 + 안쪽 반투명 어두운 패널 — 카드처럼 경계가 뚜렷해 보이게 한다.
 			SNew(SBorder)
 			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
-			.BorderBackgroundColor(FLinearColor(0.02f, 0.02f, 0.03f, 0.75f))
-			.Padding(FMargin(40.0f, 32.0f))
+			.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.15f))
+			.Padding(1.5f)
 			[
-				SNew(SVerticalBox)
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0, 0, 0, 28)
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString(TEXT("DAEPO SURVIVAL")))
-					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 34))
-					.ColorAndOpacity(FLinearColor::White)
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0, 0, 0, 16)
-				.HAlign(HAlign_Center)
+				SNew(SBorder)
+				.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+				.BorderBackgroundColor(FLinearColor(0.02f, 0.02f, 0.03f, 0.85f))
+				.Padding(FMargin(40.0f, 32.0f))
 				[
 					SNew(SBox)
-					.WidthOverride(240.0f)
-					.HeightOverride(50.0f)
+					.WidthOverride(ContentWidth)
 					[
-						MakeColoredButton(TEXT("Host Game"), FLinearColor(0.15f, 0.6f, 0.25f),
-							FOnClicked::CreateUObject(this, &UMainMenuWidget::OnHostClicked))
-					]
-				]
+						SNew(SVerticalBox)
 
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Center)
-				[
-					SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 0, 0, 8)
+						.HAlign(HAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString(TEXT("DAEPO SURVIVAL")))
+							.Font(FCoreStyle::GetDefaultFontStyle("Bold", 30))
+							.ColorAndOpacity(FLinearColor::White)
+							.Justification(ETextJustify::Center)
+						]
 
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0, 0, 0, 4)
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString(TEXT("Server IP")))
-						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
-						.ColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f))
-					]
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 0, 0, 24)
+						.HAlign(HAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString(TEXT("최후의 1인 생존")))
+							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+							.ColorAndOpacity(FLinearColor(0.7f, 0.7f, 0.7f))
+						]
 
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(0, 0, 8, 0)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 0, 0, 20)
+						.HAlign(HAlign_Fill)
 						[
 							SNew(SBox)
-							.WidthOverride(190.0f)
-							.HeightOverride(36.0f)
+							.HeightOverride(50.0f)
 							[
-								SAssignNew(IPTextBox, SEditableTextBox)
-								.HintText(FText::FromString(TEXT("예: 127.0.0.1")))
+								MakeColoredButton(TEXT("Host Game"), FLinearColor(0.15f, 0.6f, 0.25f),
+									FOnClicked::CreateUObject(this, &UMainMenuWidget::OnHostClicked))
 							]
 						]
 
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.HAlign(HAlign_Fill)
 						[
-							SNew(SBox)
-							.WidthOverride(130.0f)
-							.HeightOverride(50.0f)
+							SNew(SVerticalBox)
+
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							.Padding(0, 0, 0, 4)
 							[
-								MakeColoredButton(TEXT("Join Game"), FLinearColor(0.15f, 0.35f, 0.75f),
-									FOnClicked::CreateUObject(this, &UMainMenuWidget::OnJoinClicked))
+								SNew(STextBlock)
+								.Text(FText::FromString(TEXT("Server IP")))
+								.Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+								.ColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f))
+							]
+
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SHorizontalBox)
+
+								+ SHorizontalBox::Slot()
+								.FillWidth(1.0f)
+								.Padding(0, 0, 8, 0)
+								[
+									SNew(SBox)
+									.HeightOverride(36.0f)
+									[
+										SAssignNew(IPTextBox, SEditableTextBox)
+										.HintText(FText::FromString(TEXT("예: 127.0.0.1")))
+									]
+								]
+
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SBox)
+									.WidthOverride(90.0f)
+									.HeightOverride(50.0f)
+									[
+										MakeColoredButton(TEXT("Join"), FLinearColor(0.15f, 0.35f, 0.75f),
+											FOnClicked::CreateUObject(this, &UMainMenuWidget::OnJoinClicked))
+									]
+								]
 							]
 						]
 					]
