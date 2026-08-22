@@ -27,15 +27,15 @@ ADaePoProjectile::ADaePoProjectile()
 	SetReplicates(true);
 	SetReplicateMovement(true);
 
-	// --- 큐브 메시 (루트, 충돌 담당) ---
+	// --- 발사체 메시 (루트, 충돌 담당) ---
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMeshAsset(
-		TEXT("/Script/Engine.StaticMesh'/Engine/EngineMeshes/Cube.Cube'"));
-	if (CubeMeshAsset.Succeeded())
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMeshAsset(
+		TEXT("/Script/Engine.StaticMesh'/Engine/BasicShapes/Sphere.Sphere'"));
+	if (SphereMeshAsset.Succeeded())
 	{
-		MeshComp->SetStaticMesh(CubeMeshAsset.Object);
+		MeshComp->SetStaticMesh(SphereMeshAsset.Object);
 	}
 	MeshComp->SetRelativeScale3D(FVector(0.05f, 0.05f, 0.05f));
 
