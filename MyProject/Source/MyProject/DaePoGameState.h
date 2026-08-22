@@ -30,6 +30,13 @@ public:
 	bool bGameStarted = false;
 
 	/**
+	 * 지금이 대기실(로비) 레벨인지 여부. 로비 게임모드가 BeginPlay 에서 한 번 켜서 복제한다.
+	 * 클라이언트의 PlayerController 가 이 값을 보고 대기실 UI를 띄울지 판단한다.
+	 */
+	UPROPERTY(Replicated)
+	bool bIsLobbyLevel = false;
+
+	/**
 	 * 플레이어 구분 색상을 접속 순서대로 0번부터 배정하기 위한 서버 전용 카운터.
 	 * PlayerId 는 세션이 반복돼도 리셋되지 않고 계속 누적되는 값이라 색 배정 기준으로
 	 * 쓰기엔 부적합해서, 레벨(세션)마다 0부터 새로 시작하는 이 카운터를 대신 쓴다.

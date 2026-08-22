@@ -8,6 +8,8 @@
 #include "Blueprint/UserWidget.h"
 #include "MyProject.h"
 #include "Widgets/Input/SVirtualJoystick.h"
+#include "LobbyWidget.h"
+#include "DaePoGameState.h"
 
 void AMyProjectPlayerController::BeginPlay()
 {
@@ -19,6 +21,25 @@ void AMyProjectPlayerController::BeginPlay()
 	{
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
+	}
+
+	// 대기실 레벨이면(GameState.bIsLobbyLevel) 대기실 UI를 띄운다. 게임플레이 맵에서는
+	// 이 플래그가 false 라 LobbyWidgetClass 가 지정돼 있어도 자동으로 안 뜬다.
+	if (IsLocalPlayerController() && LobbyWidgetClass)
+	{
+		if (const ADaePoGameState* GS = GetWorld() ? GetWorld()->GetGameState<ADaePoGameState>() : nullptr)
+		{
+			if (GS->bIsLobbyLevel)
+			{
+				LobbyWidget = CreateWidget<ULobbyWidget>(this, LobbyWidgetClass);
+				if (LobbyWidget)
+				{
+					bShowMouseCursor = true;
+					SetInputMode(FInputModeGameAndUI());
+					LobbyWidget->AddToViewport();
+				}
+			}
+		}
 	}
 
 	// only spawn touch controls on local player controllers

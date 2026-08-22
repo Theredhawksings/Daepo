@@ -16,9 +16,12 @@ class MYPROJECT_API UMainMenuWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	/** 호스트가 열 실제 게임 맵 이름(패키지 이름, 확장자 없이) */
+	/**
+	 * 호스트가 열 맵 이름(패키지 이름, 확장자 없이). 게임을 바로 시작하지 않고
+	 * 대기실(로비) 맵을 먼저 열어서, 방장이 인원이 모인 뒤 직접 시작할 수 있게 한다.
+	 */
 	UPROPERTY(EditAnywhere, Category = "Menu")
-	FName MapToHost = FName(TEXT("Lvl_ThirdPerson"));
+	FName MapToHost = FName(TEXT("Lvl_Lobby"));
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;

@@ -34,7 +34,7 @@ namespace
 
 TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 {
-	constexpr float ContentWidth = 260.0f;
+	constexpr float ContentWidth = 420.0f;
 
 	return SNew(SBox)
 		.HAlign(HAlign_Center)
