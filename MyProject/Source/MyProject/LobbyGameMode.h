@@ -23,6 +23,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Lobby")
 	FName GameplayMapName = FName(TEXT("Lvl_ThirdPerson"));
 
+	/** 방장이 Start 버튼을 누르면(또는 디버그 자동 시작 시간이 지나면) 실제 게임 맵으로 전원을 데리고 이동한다 */
+	UFUNCTION(BlueprintCallable, Category = "Lobby")
+	void StartGame();
+
+	/**
+	 * 테스트/디버그용: 0보다 크면 아무도 안 눌러도 이 시간(초) 뒤 자동으로 StartGame() 을 호출한다.
+	 * 실제 서비스에서는 0으로 두고 Start 버튼으로만 시작하게 한다.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Lobby")
+	float DebugAutoStartAfterSeconds = 0.0f;
+
 protected:
 	virtual void BeginPlay() override;
+
+private:
+	FTimerHandle DebugAutoStartTimerHandle;
 };

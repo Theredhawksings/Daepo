@@ -5,6 +5,8 @@
 #include "UObject/ConstructorHelpers.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 
 ALobbyGameMode::ALobbyGameMode()
 {
@@ -38,5 +40,19 @@ void ALobbyGameMode::BeginPlay()
 	if (ADaePoGameState* GS = GetGameState<ADaePoGameState>())
 	{
 		GS->bIsLobbyLevel = true;
+	}
+
+	if (DebugAutoStartAfterSeconds > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(DebugAutoStartTimerHandle, this, &ALobbyGameMode::StartGame, DebugAutoStartAfterSeconds, false);
+	}
+}
+
+void ALobbyGameMode::StartGame()
+{
+	if (UWorld* World = GetWorld())
+	{
+		// 서버 트래블(시멀리스) — 접속해 있는 모든 클라이언트가 끊기지 않고 같이 다음 맵으로 넘어간다.
+		World->ServerTravel(GameplayMapName.ToString(), true);
 	}
 }

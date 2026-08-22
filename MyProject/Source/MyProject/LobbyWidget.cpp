@@ -125,20 +125,10 @@ FReply ULobbyWidget::OnStartClicked()
 		return FReply::Handled();
 	}
 
-	UWorld* World = GetWorld();
-	if (!World)
+	if (ALobbyGameMode* LobbyGM = GetWorld() ? GetWorld()->GetAuthGameMode<ALobbyGameMode>() : nullptr)
 	{
-		return FReply::Handled();
+		LobbyGM->StartGame();
 	}
-
-	FName GameplayMap(TEXT("Lvl_ThirdPerson"));
-	if (const ALobbyGameMode* LobbyGM = World->GetAuthGameMode<ALobbyGameMode>())
-	{
-		GameplayMap = LobbyGM->GameplayMapName;
-	}
-
-	// 서버 트래블(Seamless) — 접속해 있는 모든 클라이언트가 끊기지 않고 같이 다음 맵으로 넘어간다.
-	World->ServerTravel(GameplayMap.ToString(), true);
 
 	return FReply::Handled();
 }
