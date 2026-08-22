@@ -67,7 +67,8 @@ void ADaePoMortar::Fire()
 	// 발사 여부와 관계없이 체인 유지
 	ScheduleNextShot();
 
-	if (bPreviewMode || !MuzzleArrow)
+	// 이 오버라이드도 부모의 IsGameStarted() 체크를 거치지 않으므로 직접 확인한다.
+	if (!IsGameStarted() || bPreviewMode || !MuzzleArrow)
 	{
 		return;
 	}

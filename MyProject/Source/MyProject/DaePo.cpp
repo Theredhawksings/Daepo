@@ -16,6 +16,7 @@
 #include "GameFramework/Pawn.h"
 #include "MyProjectCharacter.h"
 #include "Net/UnrealNetwork.h"
+#include "DaePoGameState.h"
 
 ADaePo::ADaePo()
 {
@@ -168,6 +169,13 @@ void ADaePo::DrawFireTrajectory() const
 		DrawDebugSphere(World, Result.HitResult.ImpactPoint, 25.0f, 12, FColor::Orange,
 			false, -1.0f, 0, 2.0f);
 	}
+}
+
+bool ADaePo::IsGameStarted() const
+{
+	const ADaePoGameState* GS = GetWorld() ? GetWorld()->GetGameState<ADaePoGameState>() : nullptr;
+	// GameState 를 못 찾으면(우리 GameMode 를 안 쓰는 테스트 맵 등) 대기 없이 시작된 것으로 간주.
+	return !GS || GS->bGameStarted;
 }
 
 APawn* ADaePo::FindNearestPlayerInRange(float Range) const
@@ -390,6 +398,12 @@ void ADaePo::Fire()
 
 	// 발사 성공 여부와 관계없이 다음 발사를 먼저 예약해 체인을 유지한다.
 	ScheduleNextShot();
+
+	// 아직 대기시간(PreGameDelay) 중이면 쏘지 않는다. 예약은 이미 했으니 다음 기회에 다시 확인.
+	if (!IsGameStarted())
+	{
+		return;
+	}
 
 	if (!MuzzleArrow)
 	{

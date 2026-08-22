@@ -22,10 +22,32 @@ void AMyProjectGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (bAutoStart)
+	if (!bAutoStart)
 	{
-		StartSurvivalTimer();
+		return;
 	}
+
+	if (PreGameDelay > 0.0f)
+	{
+		// 대기시간 동안은 대포도 안 쏘고(GameState.bGameStarted == false) 타이머도 안 돈다.
+		// 그동안 다른 플레이어가 합류할 시간을 번다.
+		GetWorldTimerManager().SetTimer(PreGameTimerHandle, this, &AMyProjectGameMode::BeginActualGame, PreGameDelay, false);
+	}
+	else
+	{
+		BeginActualGame();
+	}
+}
+
+void AMyProjectGameMode::BeginActualGame()
+{
+	// 대포들이 이 신호를 보고 그때부터 발사를 시작한다(값이 복제되어 클라이언트에도 전달됨).
+	if (ADaePoGameState* GS = GetGameState<ADaePoGameState>())
+	{
+		GS->bGameStarted = true;
+	}
+
+	StartSurvivalTimer();
 }
 
 void AMyProjectGameMode::Tick(float DeltaSeconds)

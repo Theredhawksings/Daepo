@@ -19,9 +19,16 @@ public:
 	/** Constructor */
 	AMyProjectGameMode();
 
-	/** BeginPlay 시 자동으로 생존 타이머를 시작할지 */
+	/** BeginPlay 시 (대기시간 이후) 자동으로 생존 타이머를 시작할지 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	bool bAutoStart = true;
+
+	/**
+	 * 호스트 직후 실제 게임(대포 발사/생존 타이머)이 시작되기까지 대기하는 시간(초).
+	 * 이 동안 다른 플레이어가 합류할 시간을 번다. 0 이면 대기 없이 바로 시작.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival", meta = (ClampMin = "0.0"))
+	float PreGameDelay = 10.0f;
 
 	/** 목표 생존 시간(초). 0 이하면 판정하지 않음 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival", meta = (ClampMin = "0.0"))
@@ -85,6 +92,12 @@ private:
 
 	/** TransitionDelay 만큼 대기했다가 TravelToNextLevel 을 호출하는 타이머 */
 	FTimerHandle TransitionTimerHandle;
+
+	/** PreGameDelay 만큼 대기했다가 실제 게임을 시작시키는 타이머 */
+	FTimerHandle PreGameTimerHandle;
+
+	/** 대기시간이 끝나면 호출됨: GameState.bGameStarted 를 켜고 생존 타이머를 시작한다 */
+	void BeginActualGame();
 };
 
 

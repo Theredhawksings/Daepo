@@ -178,6 +178,12 @@ protected:
 	bool bPreviewMode = false;
 
 	/**
+	 * GameState.bGameStarted 를 확인한다. GameState 를 못 찾으면(우리 게임모드를 안 쓰는
+	 * 테스트 맵 등) 대기 없이 바로 시작된 것으로 간주해 기존 동작을 그대로 유지한다.
+	 */
+	bool IsGameStarted() const;
+
+	/**
 	 * true 면 반동이 다 회복돼도 틱을 끄지 않는다.
 	 * 터렛처럼 무작위 이동/회전은 안 쓰지만 매 프레임 자체 로직(플레이어 감지 등)이
 	 * 필요한 자식 클래스가 BeginPlay 등에서 true 로 설정해서 최적화(자동 틱 끄기)를 피한다.
