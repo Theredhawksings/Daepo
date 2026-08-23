@@ -21,7 +21,7 @@ public:
 
 	/** 방장이 "Start Game"을 누르면 이동할 실제 게임 맵 이름 */
 	UPROPERTY(EditDefaultsOnly, Category = "Lobby")
-	FName GameplayMapName = FName(TEXT("Lvl_ThirdPerson"));
+	FName GameplayMapName = FName(TEXT("/Game/ThirdPerson/Lvl_ThirdPerson"));
 
 	/** 방장이 Start 버튼을 누르면(또는 디버그 자동 시작 시간이 지나면) 실제 게임 맵으로 전원을 데리고 이동한다 */
 	UFUNCTION(BlueprintCallable, Category = "Lobby")

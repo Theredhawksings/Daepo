@@ -16,6 +16,11 @@ class MYPROJECT_API ULobbyWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
+public:
+	/** "나가기" 버튼을 눌렀을 때 돌아갈 메인 메뉴 맵 이름 */
+	UPROPERTY(EditAnywhere, Category = "Menu")
+	FName MainMenuMapName = FName(TEXT("/Game/Main"));
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -28,4 +33,5 @@ private:
 	int32 LastDisplayedCount = -1;
 
 	FReply OnStartClicked();
+	FReply OnCancelClicked();
 };

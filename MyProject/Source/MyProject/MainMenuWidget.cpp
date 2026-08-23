@@ -164,11 +164,15 @@ FReply UMainMenuWidget::OnJoinClicked()
 		return FReply::Handled();
 	}
 
-	// 입력한 IP 로 접속을 시도한다(그 주소의 서버가 리슨 서버로 열려 있어야 함).
-	if (APlayerController* PC = GetOwningPlayer())
+	if (GEngine)
 	{
-		PC->ClientTravel(IP, TRAVEL_Absolute);
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("접속 시도: %s"), *IP));
 	}
+
+	// 입력한 IP 로 접속을 시도한다(그 주소의 서버가 리슨 서버로 열려 있어야 함).
+	// ClientTravel(RPC) 대신 OpenLevel 을 쓴다 — 아직 네트워크에 전혀 연결되지 않은
+	// 완전한 오프라인(스탠드얼론) 상태에서는 RPC 라우팅 경로를 안 타는 이 방식이 더 확실하다.
+	UGameplayStatics::OpenLevel(this, FName(*IP), true);
 
 	return FReply::Handled();
 }

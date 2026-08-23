@@ -19,7 +19,7 @@ class MYPROJECT_API UDaePoGameInstance : public UGameInstance
 public:
 	/** 연결이 끊겼을 때 돌아갈 메인 메뉴 맵 이름(패키지 이름, 확장자 없이) */
 	UPROPERTY(EditDefaultsOnly, Category = "Network")
-	FName MainMenuMapName = FName(TEXT("Main"));
+	FName MainMenuMapName = FName(TEXT("/Game/Main"));
 
 	virtual void Init() override;
 

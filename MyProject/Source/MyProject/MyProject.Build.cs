@@ -21,7 +21,8 @@ public class MyProject : ModuleRules
 			"Slate",
 			"SlateCore",
 			"EngineCameras",
-			"NetCore"
+			"NetCore",
+			"Sockets"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
