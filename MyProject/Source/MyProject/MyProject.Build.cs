@@ -20,7 +20,8 @@ public class MyProject : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
-			"EngineCameras"
+			"EngineCameras",
+			"NetCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

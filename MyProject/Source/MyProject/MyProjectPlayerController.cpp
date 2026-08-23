@@ -10,6 +10,8 @@
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "LobbyWidget.h"
 #include "DaePoGameState.h"
+#include "PauseMenuWidget.h"
+#include "InputCoreTypes.h"
 
 void AMyProjectPlayerController::BeginPlay()
 {
@@ -86,6 +88,45 @@ void AMyProjectPlayerController::SetupInputComponent()
 				}
 			}
 		}
+
+		// ESC 는 입력 매핑 에셋 없이 클래식 방식으로 바로 바인딩한다(간단한 시스템 키라 충분함).
+		if (InputComponent)
+		{
+			InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AMyProjectPlayerController::TogglePauseMenu);
+		}
+	}
+}
+
+void AMyProjectPlayerController::TogglePauseMenu()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	// 이미 떠 있으면 닫고 원래 게임 입력으로 되돌린다.
+	if (PauseMenuWidget)
+	{
+		PauseMenuWidget->RemoveFromParent();
+		PauseMenuWidget = nullptr;
+
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+		return;
+	}
+
+	// 없으면 새로 띄우고 마우스를 보이게 한다. 클래스가 지정 안 돼 있으면 아무 일도 안 한다.
+	if (!PauseMenuWidgetClass)
+	{
+		return;
+	}
+
+	PauseMenuWidget = CreateWidget<UPauseMenuWidget>(this, PauseMenuWidgetClass);
+	if (PauseMenuWidget)
+	{
+		bShowMouseCursor = true;
+		SetInputMode(FInputModeGameAndUI());
+		PauseMenuWidget->AddToViewport(10); // 대기실 UI 등보다 위에 그려지도록 ZOrder 를 높게
 	}
 }
 
