@@ -30,6 +30,13 @@ public:
 	bool bGameStarted = false;
 
 	/**
+	 * 게임이 시작되기까지 남은 대기시간(초). 서버가 매 틱 갱신한다(bGameStarted 가 true가
+	 * 되면 더 이상 갱신되지 않고 0으로 취급됨). 대기실 카운트다운 표시용.
+	 */
+	UPROPERTY(Replicated)
+	float ReplicatedPreGameRemaining = 0.0f;
+
+	/**
 	 * 지금이 대기실(로비) 레벨인지 여부. 로비 게임모드가 BeginPlay 에서 한 번 켜서 복제한다.
 	 * 클라이언트의 PlayerController 가 이 값을 보고 대기실 UI를 띄울지 판단한다.
 	 */

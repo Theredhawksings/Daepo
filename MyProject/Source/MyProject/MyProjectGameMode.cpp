@@ -59,6 +59,13 @@ void AMyProjectGameMode::Tick(float DeltaSeconds)
 	if (ADaePoGameState* DaePoGameState = GetGameState<ADaePoGameState>())
 	{
 		DaePoGameState->ReplicatedElapsedSeconds = static_cast<float>(GetElapsedSurvivalSeconds());
+
+		if (!DaePoGameState->bGameStarted)
+		{
+			// PreGameTimerHandle 이 유효하지 않으면(대기시간 0 등) 음수가 나오므로 0으로 클램프.
+			const float Remaining = GetWorldTimerManager().GetTimerRemaining(PreGameTimerHandle);
+			DaePoGameState->ReplicatedPreGameRemaining = FMath::Max(Remaining, 0.0f);
+		}
 	}
 
 	if (!bRunning || bCompleted || SurvivalDuration <= 0.0f)

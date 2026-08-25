@@ -11,6 +11,7 @@
 #include "LobbyWidget.h"
 #include "DaePoGameState.h"
 #include "PauseMenuWidget.h"
+#include "CountdownWidget.h"
 #include "InputCoreTypes.h"
 
 void AMyProjectPlayerController::BeginPlay()
@@ -39,6 +40,21 @@ void AMyProjectPlayerController::BeginPlay()
 					bShowMouseCursor = true;
 					SetInputMode(FInputModeGameAndUI());
 					LobbyWidget->AddToViewport();
+				}
+			}
+		}
+	}
+
+	// 게임플레이 맵(로비가 아닌 곳)에서만 대기시간 카운트다운 UI를 띄운다.
+	if (IsLocalPlayerController() && CountdownWidgetClass)
+	{
+		if (const ADaePoGameState* GS = GetWorld() ? GetWorld()->GetGameState<ADaePoGameState>() : nullptr)
+		{
+			if (!GS->bIsLobbyLevel)
+			{
+				if (UCountdownWidget* CountdownWidget = CreateWidget<UCountdownWidget>(this, CountdownWidgetClass))
+				{
+					CountdownWidget->AddToViewport();
 				}
 			}
 		}

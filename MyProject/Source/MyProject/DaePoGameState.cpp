@@ -9,4 +9,5 @@ void ADaePoGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(ADaePoGameState, ReplicatedElapsedSeconds);
 	DOREPLIFETIME(ADaePoGameState, bGameStarted);
 	DOREPLIFETIME(ADaePoGameState, bIsLobbyLevel);
+	DOREPLIFETIME(ADaePoGameState, ReplicatedPreGameRemaining);
 }

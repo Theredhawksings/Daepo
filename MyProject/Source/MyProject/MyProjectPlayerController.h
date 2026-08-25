@@ -51,6 +51,13 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class ULobbyWidget> LobbyWidget;
 
+	/**
+	 * 게임플레이 맵에서만 띄우는 대기시간(PreGameDelay) 카운트다운 UI. 로비 레벨에서는
+	 * GameState.bIsLobbyLevel 이 true 라 자동으로 안 뜬다.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Countdown")
+	TSubclassOf<class UCountdownWidget> CountdownWidgetClass;
+
 	/** ESC 를 누르면 뜨는 투명 종료 메뉴. 비워두면 ESC 를 눌러도 아무 일도 안 일어난다. */
 	UPROPERTY(EditAnywhere, Category = "Pause")
 	TSubclassOf<class UPauseMenuWidget> PauseMenuWidgetClass;
