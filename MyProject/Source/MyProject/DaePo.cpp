@@ -302,7 +302,9 @@ void ADaePo::Tick(float DeltaTime)
 		}
 	}
 
-	if ((!bRandomMove && !bRandomRotate) || bWanderPaused)
+	// 대기시간(PreGameDelay) 동안은 대포가 아예 움직이지 않고 설치 위치에 고정돼 있다가,
+	// 게임이 실제로 시작되면(bGameStarted) 그때부터 무작위 이동/회전을 시작한다.
+	if ((!bRandomMove && !bRandomRotate) || bWanderPaused || !IsGameStarted())
 	{
 		// 반동만 처리하고 끝나는 경우도 있으므로, 여기서도 최신 위치를 복제 프로퍼티에 반영해야 한다.
 		SyncReplicatedTransform();
