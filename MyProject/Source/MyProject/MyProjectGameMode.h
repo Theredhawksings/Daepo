@@ -78,6 +78,9 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** 게임이 이미 시작된 뒤(bGameStarted == true)에는 새로 들어오려는 접속을 거절한다 */
+	virtual void PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage) override;
+
 private:
 	/** 실행 중일 때, 이번 구간이 시작된 실제(벽시계) 시각 */
 	double SegmentStartRealSeconds = 0.0;

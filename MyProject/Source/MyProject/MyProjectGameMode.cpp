@@ -145,6 +145,19 @@ FText AMyProjectGameMode::FormatElapsedTime(double Seconds)
 	return FText::FromString(FString::Printf(TEXT("%02d:%02d:%02d.%02d"), Hours, Minutes, Secs, Centiseconds));
 }
 
+void AMyProjectGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
+{
+	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+
+	if (const ADaePoGameState* DaePoGameState = GetGameState<ADaePoGameState>())
+	{
+		if (DaePoGameState->bGameStarted)
+		{
+			ErrorMessage = TEXT("게임이 이미 시작되어 참여할 수 없습니다.");
+		}
+	}
+}
+
 void AMyProjectGameMode::TravelToNextLevel()
 {
 	if (NextLevel.IsNull())
