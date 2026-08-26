@@ -24,6 +24,7 @@
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameStateBase.h"
 #include "DaePoGameState.h"
+#include "MyProjectGameMode.h"
 #include "MyProject.h"
 
 AMyProjectCharacter::AMyProjectCharacter()
@@ -371,7 +372,7 @@ void AMyProjectCharacter::HandleDeath()
 
 		// 타이머는 느려진 게임 시간으로 흐르므로, 실제 체감 시간(DeathRestartDelay)이 되도록 배율을 곱한다.
 		const float TimerDelay = DeathRestartDelay * DeathSlowMotionScale;
-		GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::RestartLevel, TimerDelay, false);
+		GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::HandleDeathTimerElapsed, TimerDelay, false);
 	}
 }
 
@@ -395,17 +396,21 @@ UAnimSequence* AMyProjectCharacter::PickDeathAnim() const
 	return (LocalDir.Y >= 0.0f) ? DeathAnimLeft : DeathAnimRight;
 }
 
-void AMyProjectCharacter::RestartLevel()
+void AMyProjectCharacter::HandleDeathTimerElapsed()
 {
-	// 레벨 재시작은 서버만 실행한다. 서버가 OpenLevel 을 호출하면 접속해 있는 모든
-	// 클라이언트가 함께 그 맵으로 이동한다(서버 트래블). 클라이언트가 각자 로컬로
-	// OpenLevel 을 부르면 멀티플레이 세션에서 혼자 튕겨나가 딴 게임이 되어버린다.
+	// 판정은 서버만 한다.
 	if (!HasAuthority())
 	{
 		return;
 	}
 
-	// 시간 배율을 원래대로 돌리고 현재 레벨을 처음부터 다시 연다.
+	// 시간 배율을 원래대로 되돌린다(전역 슬로모션이라 다른 생존자들에게도 걸려 있었음).
 	UGameplayStatics::SetGlobalTimeDilation(this, 1.0f);
-	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
+
+	// 살아있는 인원이 1명 이하로 남았는지는 GameMode 가 판정한다. 아직 2명 이상 살아있으면
+	// 이 캐릭터는 이미 죽은 채로 그냥 두고(관전 상태) 나머지끼리 게임을 계속 진행한다.
+	if (AMyProjectGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AMyProjectGameMode>() : nullptr)
+	{
+		GM->NotifyPlayerDied();
+	}
 }

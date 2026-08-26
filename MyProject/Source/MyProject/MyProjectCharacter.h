@@ -175,10 +175,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Health|Death", meta = (ClampMin = "0.1"))
 	float DeathRestartDelay = 2.0f;
 
-	/** 슬로모션을 풀고 현재 레벨을 처음부터 다시 연다 */
-	void RestartLevel();
+	/** 슬로모션을 풀고, GameMode 에 이 죽음을 알려서 최후의 1인이 가려졌는지 판정시킨다 */
+	void HandleDeathTimerElapsed();
 
-	/** 사망 → 재시작 지연 타이머 */
+	/** 사망 → 판정 지연 타이머 */
 	FTimerHandle RestartTimerHandle;
 
 	/** 앞으로 쓰러지는 애니(뒤에서 맞았을 때) */

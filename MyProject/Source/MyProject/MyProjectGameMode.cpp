@@ -152,6 +152,37 @@ FText AMyProjectGameMode::FormatElapsedTime(double Seconds)
 	return FText::FromString(FString::Printf(TEXT("%02d:%02d:%02d.%02d"), Hours, Minutes, Secs, Centiseconds));
 }
 
+void AMyProjectGameMode::NotifyPlayerDied()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	int32 AliveCount = 0;
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		const APlayerController* PC = It->Get();
+		const AMyProjectCharacter* Character = PC ? Cast<AMyProjectCharacter>(PC->GetPawn()) : nullptr;
+		if (Character && !Character->IsDead())
+		{
+			++AliveCount;
+		}
+	}
+
+	// 살아있는 인원이 1명 이하로 남으면(최후의 1인 결정, 또는 동시 전멸) 라운드를 끝내고
+	// 잠시 후 접속해 있는 전원(승자든 이미 죽은 사람이든)을 메인 메뉴로 돌려보낸다.
+	if (AliveCount <= 1)
+	{
+		GetWorldTimerManager().SetTimer(ReturnToMenuTimerHandle, this, &AMyProjectGameMode::ReturnAllPlayersToMainMenu, ReturnToMenuDelay, false);
+	}
+}
+
+void AMyProjectGameMode::ReturnAllPlayersToMainMenu()
+{
+	UGameplayStatics::OpenLevel(this, MainMenuMapName, true);
+}
+
 void AMyProjectGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
 {
 	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);

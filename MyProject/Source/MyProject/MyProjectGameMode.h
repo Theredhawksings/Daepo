@@ -74,6 +74,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Survival")
 	void TravelToNextLevel();
 
+	/** 돌아갈 메인 메뉴 맵 (패키지 전체 경로로 지정해야 엔진 내장 에셋과 이름이 겹치지 않는다) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	FName MainMenuMapName = FName(TEXT("/Game/Main"));
+
+	/** 최후의 1인이 가려진 뒤 메인 메뉴로 돌아가기까지 대기 시간(초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival", meta = (ClampMin = "0.0"))
+	float ReturnToMenuDelay = 2.0f;
+
+	/**
+	 * 캐릭터가 죽을 때마다 호출된다(사망 연출이 끝난 뒤). 살아있는 인원을 세어서 1명
+	 * 이하로 남았으면(최후의 1인 결정) 잠시 후 접속해 있는 전원을 메인 메뉴로 돌려보낸다.
+	 * 2명 이상 살아있으면 아무 것도 하지 않고, 죽은 캐릭터는 그대로 죽은 채로 게임은 계속된다.
+	 */
+	void NotifyPlayerDied();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -101,6 +116,12 @@ private:
 
 	/** 대기시간이 끝나면 호출됨: GameState.bGameStarted 를 켜고 생존 타이머를 시작한다 */
 	void BeginActualGame();
+
+	/** ReturnToMenuDelay 만큼 대기했다가 접속해 있는 전원을 메인 메뉴로 돌려보내는 타이머 */
+	FTimerHandle ReturnToMenuTimerHandle;
+
+	/** 실제로 메인 메뉴 맵을 여는 함수(전원이 같이 이동함) */
+	void ReturnAllPlayersToMainMenu();
 };
 
 
