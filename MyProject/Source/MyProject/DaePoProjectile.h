@@ -10,6 +10,7 @@ class UProjectileMovementComponent;
 class USoundBase;
 class USoundAttenuation;
 class UMaterialInterface;
+class UNiagaraSystem;
 
 /**
  * 대포에서 발사되는 큐브 발사체.
@@ -113,6 +114,25 @@ protected:
 
 	/** 부딪힌 지점에 충돌구(디버그 구)를 그린다 */
 	void SpawnImpactDecal(const FVector& Location, const FVector& Normal);
+
+	/** 충돌 지점에서 재생할 폭발 나이아가라 이펙트. 비우면 재생 안 함. */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact")
+	TObjectPtr<UNiagaraSystem> ImpactVFX;
+
+	/** 폭발 이펙트 크기 배수(컴포넌트 스케일로 적용) */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.01"))
+	float ImpactVFXScale = 1.0f;
+
+	/**
+	 * 충돌 표면 바깥쪽(Normal 방향)으로 이펙트를 띄워서 스폰할 거리(cm). 이펙트가 구형으로
+	 * 퍼지다 보니 표면에 딱 붙여서 스폰하면 절반이 벽 안으로 파고들어 벽을 뚫고 나온 것처럼
+	 * 보인다. 살짝 띄우면 이 문제가 크게 줄어든다.
+	 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.0"))
+	float ImpactVFXSurfaceOffset = 40.0f;
+
+	/** 부딪힌 지점에 ImpactVFX 를 스폰한다 */
+	void SpawnImpactVFX(const FVector& Location, const FVector& Normal);
 
 	/** 플레이어를 맞혔을 때 재생할 카메라 흔들림 */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Impact")

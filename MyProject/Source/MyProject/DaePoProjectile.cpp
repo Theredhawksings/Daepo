@@ -16,6 +16,8 @@
 #include "DaePoHitCameraShake.h"
 #include "Engine/OverlapResult.h"
 #include "MyProjectCharacter.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 ADaePoProjectile::ADaePoProjectile()
 {
@@ -68,6 +70,14 @@ ADaePoProjectile::ADaePoProjectile()
 
 	// 기본 피격 카메라 흔들림 지정
 	HitCameraShake = UDaePoHitCameraShake::StaticClass();
+
+	// 기본 폭발 이펙트 지정(블루프린트 없이 C++ 기본값으로 바로 적용됨)
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> ImpactVFXAsset(
+		TEXT("/Script/Niagara.NiagaraSystem'/Game/Fire_EXP_Vol01_Free/Niagara/EXP/NS_Sub_EXP_Mid_002_02.NS_Sub_EXP_Mid_002_02'"));
+	if (ImpactVFXAsset.Succeeded())
+	{
+		ImpactVFX = ImpactVFXAsset.Object;
+	}
 }
 
 void ADaePoProjectile::ShakeNearbyPlayer(const FVector& Location, const AActor* DirectHitActor) const
@@ -202,7 +212,25 @@ void ADaePoProjectile::MulticastPlayImpactEffects_Implementation(const FVector& 
 {
 	PlayImpactSound(Location);
 	SpawnImpactDecal(Location, Normal);
+	SpawnImpactVFX(Location, Normal);
 	ShakeNearbyPlayer(Location, HitActor);
+}
+
+void ADaePoProjectile::SpawnImpactVFX(const FVector& Location, const FVector& Normal)
+{
+	if (!ImpactVFX)
+	{
+		return;
+	}
+
+	// 충돌 표면에 딱 붙여서 스폰하면 구형으로 퍼지는 파티클 절반이 벽 안으로 파고들어
+	// 벽을 뚫고 나온 것처럼 보인다. 표면 바깥쪽(Normal 방향)으로 살짝 띄워서 스폰한다.
+	const FVector SpawnLocation = Location + Normal.GetSafeNormal() * ImpactVFXSurfaceOffset;
+
+	// bPreCullCheck 를 꺼서, 나이아가라가 "안 보여도 될 것 같다"고 자체 판단해 조용히
+	// 스폰을 건너뛰는 일이 없게 한다(대포 폭발처럼 플레이어가 직접 일으킨 이펙트는 항상 보여야 함).
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactVFX, SpawnLocation, Normal.Rotation(),
+		FVector(ImpactVFXScale), true, true, ENCPoolMethod::AutoRelease, false);
 }
 
 void ADaePoProjectile::OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity)
