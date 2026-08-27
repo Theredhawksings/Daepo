@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "MyProjectCharacter.h"
 #include "DaePoGameState.h"
+#include "DaePoLandmine.h"
 
 AMyProjectGameMode::AMyProjectGameMode()
 {
@@ -48,6 +49,7 @@ void AMyProjectGameMode::BeginActualGame()
 	}
 
 	StartSurvivalTimer();
+	SpawnLandminesUpToCap();
 }
 
 void AMyProjectGameMode::Tick(float DeltaSeconds)
@@ -181,6 +183,78 @@ void AMyProjectGameMode::NotifyPlayerDied()
 void AMyProjectGameMode::ReturnAllPlayersToMainMenu()
 {
 	UGameplayStatics::OpenLevel(this, MainMenuMapName, true);
+}
+
+void AMyProjectGameMode::OnLandmineConsumed()
+{
+	--CurrentLandmineCount;
+	SpawnOneLandmine();
+}
+
+void AMyProjectGameMode::SpawnLandminesUpToCap()
+{
+	if (!LandmineClass)
+	{
+		return;
+	}
+
+	const int32 NeedToSpawn = MaxLandmineCount - CurrentLandmineCount;
+	for (int32 i = 0; i < NeedToSpawn; ++i)
+	{
+		SpawnOneLandmine();
+	}
+}
+
+void AMyProjectGameMode::SpawnOneLandmine()
+{
+	if (!LandmineClass || CurrentLandmineCount >= MaxLandmineCount)
+	{
+		return;
+	}
+
+	FVector SpawnLocation;
+	if (!FindRandomLandminePoint(SpawnLocation))
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	if (GetWorld()->SpawnActor<ADaePoLandmine>(LandmineClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams))
+	{
+		++CurrentLandmineCount;
+	}
+}
+
+bool AMyProjectGameMode::FindRandomLandminePoint(FVector& OutLocation) const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	// 원형 구역 안에서 무작위 XY 를 뽑고, 그 위치에서 위->아래로 라인 트레이스해서
+	// 실제 바닥 높이를 찾는다(NavMesh 없이도 동작하도록 하는 간단한 방식).
+	for (int32 Attempt = 0; Attempt < 10; ++Attempt)
+	{
+		const float Angle = FMath::FRandRange(0.0f, 2.0f * PI);
+		const float Dist = FMath::FRandRange(0.0f, LandmineAreaRadius);
+		const FVector XY = LandmineAreaCenter + FVector(FMath::Cos(Angle) * Dist, FMath::Sin(Angle) * Dist, 0.0f);
+
+		const FVector TraceStart = XY + FVector(0.0f, 0.0f, 2000.0f);
+		const FVector TraceEnd = XY - FVector(0.0f, 0.0f, 2000.0f);
+
+		FHitResult Hit;
+		if (World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility))
+		{
+			OutLocation = Hit.Location;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void AMyProjectGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)

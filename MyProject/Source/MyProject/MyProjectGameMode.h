@@ -89,6 +89,25 @@ public:
 	 */
 	void NotifyPlayerDied();
 
+	/** 지뢰로 사용할 액터 클래스. 비워두면 지뢰 기능 자체가 꺼진다(스폰 안 함). */
+	UPROPERTY(EditAnywhere, Category = "Landmine")
+	TSubclassOf<class ADaePoLandmine> LandmineClass;
+
+	/** 동시에 맵에 존재할 수 있는 최대 지뢰 개수 */
+	UPROPERTY(EditAnywhere, Category = "Landmine", meta = (ClampMin = "0"))
+	int32 MaxLandmineCount = 6;
+
+	/** 지뢰를 무작위로 배치할 원형 구역의 중심(월드 좌표) */
+	UPROPERTY(EditAnywhere, Category = "Landmine")
+	FVector LandmineAreaCenter = FVector::ZeroVector;
+
+	/** 위 중심에서 이 반경(cm) 안에 무작위로 배치한다 */
+	UPROPERTY(EditAnywhere, Category = "Landmine", meta = (ClampMin = "0.0"))
+	float LandmineAreaRadius = 3000.0f;
+
+	/** 지뢰가 하나 터졌을 때(ADaePoLandmine 이 호출) 개수를 줄이고 다른 곳에 새 지뢰를 다시 채운다 */
+	void OnLandmineConsumed();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -122,6 +141,18 @@ private:
 
 	/** 실제로 메인 메뉴 맵을 여는 함수(전원이 같이 이동함) */
 	void ReturnAllPlayersToMainMenu();
+
+	/** 현재 맵에 살아있는(아직 안 터진) 지뢰 개수 */
+	int32 CurrentLandmineCount = 0;
+
+	/** 부족한 만큼(MaxLandmineCount 까지) 새 지뢰를 무작위 위치에 채운다 */
+	void SpawnLandminesUpToCap();
+
+	/** 지뢰 하나를 무작위 위치에 스폰한다(성공하면 CurrentLandmineCount 증가) */
+	void SpawnOneLandmine();
+
+	/** LandmineAreaCenter/LandmineAreaRadius 안에서 땅 위 무작위 지점을 찾는다(위에서 아래로 라인 트레이스) */
+	bool FindRandomLandminePoint(FVector& OutLocation) const;
 };
 
 
