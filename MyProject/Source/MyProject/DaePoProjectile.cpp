@@ -223,13 +223,23 @@ void ADaePoProjectile::SpawnImpactVFX(const FVector& Location, const FVector& No
 		return;
 	}
 
+	const FVector SafeNormal = Normal.GetSafeNormal();
+
+	// 바닥(Normal 이 거의 위쪽)이면 표면 방향 그대로 쓰고, 벽처럼 옆을 향한 면이면
+	// 이펙트가 옆으로 완전히 누워 나오지 않도록 월드 위쪽 방향 쪽으로 어느 정도 세운다.
+	FVector EffectDirection = SafeNormal;
+	if (SafeNormal.Z < FloorNormalThreshold)
+	{
+		EffectDirection = FMath::Lerp(SafeNormal, FVector::UpVector, WallImpactUprightBlend).GetSafeNormal();
+	}
+
 	// 충돌 표면에 딱 붙여서 스폰하면 구형으로 퍼지는 파티클 절반이 벽 안으로 파고들어
 	// 벽을 뚫고 나온 것처럼 보인다. 표면 바깥쪽(Normal 방향)으로 살짝 띄워서 스폰한다.
-	const FVector SpawnLocation = Location + Normal.GetSafeNormal() * ImpactVFXSurfaceOffset;
+	const FVector SpawnLocation = Location + SafeNormal * ImpactVFXSurfaceOffset;
 
 	// bPreCullCheck 를 꺼서, 나이아가라가 "안 보여도 될 것 같다"고 자체 판단해 조용히
 	// 스폰을 건너뛰는 일이 없게 한다(대포 폭발처럼 플레이어가 직접 일으킨 이펙트는 항상 보여야 함).
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactVFX, SpawnLocation, Normal.Rotation(),
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactVFX, SpawnLocation, EffectDirection.Rotation(),
 		FVector(ImpactVFXScale), true, true, ENCPoolMethod::AutoRelease, false);
 }
 
