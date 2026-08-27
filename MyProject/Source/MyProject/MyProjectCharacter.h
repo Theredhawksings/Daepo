@@ -97,6 +97,22 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsDead() const { return bIsDead; }
 
+	/** 켜두면, 일정 시간 동안 충분히 움직이지 않을 때 자동으로 피해를 입는다(장시간 정지 페널티) */
+	UPROPERTY(EditAnywhere, Category = "Health|Stillness Penalty")
+	bool bEnableStillnessPenalty = true;
+
+	/** 이 시간(초)마다 한 번씩 움직인 거리를 확인한다 */
+	UPROPERTY(EditAnywhere, Category = "Health|Stillness Penalty", meta = (EditCondition = "bEnableStillnessPenalty", ClampMin = "0.1"))
+	float StillnessCheckInterval = 3.0f;
+
+	/** 확인 주기 동안 이 거리(cm) 이상 움직여야 페널티를 피할 수 있다 */
+	UPROPERTY(EditAnywhere, Category = "Health|Stillness Penalty", meta = (EditCondition = "bEnableStillnessPenalty", ClampMin = "0.0"))
+	float MinMoveDistance = 150.0f;
+
+	/** 충분히 움직이지 않았을 때 입는 피해량 */
+	UPROPERTY(EditAnywhere, Category = "Health|Stillness Penalty", meta = (EditCondition = "bEnableStillnessPenalty", ClampMin = "0.0"))
+	float StillnessDamage = 5.0f;
+
 protected:
 
 	/** Initialize input action bindings */
@@ -180,6 +196,15 @@ protected:
 
 	/** 사망 → 판정 지연 타이머 */
 	FTimerHandle RestartTimerHandle;
+
+	/** StillnessCheckInterval 마다 반복 호출되어 그동안 충분히 움직였는지 확인한다(서버 전용) */
+	void CheckStillnessPenalty();
+
+	/** 마지막으로 정지 페널티를 확인한 시점의 위치 */
+	FVector LastStillnessCheckLocation = FVector::ZeroVector;
+
+	/** 정지 페널티 확인 반복 타이머 */
+	FTimerHandle StillnessCheckTimerHandle;
 
 	/** 앞으로 쓰러지는 애니(뒤에서 맞았을 때) */
 	UPROPERTY(EditAnywhere, Category = "Health|Death")

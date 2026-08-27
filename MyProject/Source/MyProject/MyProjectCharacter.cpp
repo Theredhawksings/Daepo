@@ -50,6 +50,11 @@ AMyProjectCharacter::AMyProjectCharacter()
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 
+	// 대포처럼 둥근(원통형) 메시 위에 서 있다가 가장자리로 갈 때, 기본 각도(약 44도)로는
+	// 곡면을 계속 "걸을 수 있는 바닥"으로 인식해서 낙하 전환이 늦어져 스르륵 미끄러지듯
+	// 내려가 보인다. 각도를 낮춰서 더 일찍 낙하로 전환되게 한다(뚝 떨어지는 느낌).
+	GetCharacterMovement()->SetWalkableFloorAngle(15.0f);
+
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -190,6 +195,13 @@ void AMyProjectCharacter::BeginPlay()
 	// PlayerColorIndex 가 이미 복제돼 있는 경우(재접속 등)를 위해 한 번 시도.
 	// 아직 서버가 배정 전이면 PossessedBy(서버)/OnRep_PlayerColorIndex(클라이언트)에서 처리된다.
 	UpdatePlayerColor();
+
+	// 정지 페널티 판정은 체력 계산과 마찬가지로 서버만 한다.
+	if (HasAuthority() && bEnableStillnessPenalty)
+	{
+		LastStillnessCheckLocation = GetActorLocation();
+		GetWorldTimerManager().SetTimer(StillnessCheckTimerHandle, this, &AMyProjectCharacter::CheckStillnessPenalty, StillnessCheckInterval, true);
+	}
 }
 
 void AMyProjectCharacter::PossessedBy(AController* NewController)
@@ -322,6 +334,33 @@ void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 	if (Health <= 0.0f)
 	{
 		HandleDeath();
+	}
+}
+
+void AMyProjectCharacter::CheckStillnessPenalty()
+{
+	// 이 함수는 서버에서만 도는 타이머로 호출되지만, 만약을 대비해 한 번 더 확인.
+	if (!HasAuthority() || bIsDead)
+	{
+		return;
+	}
+
+	// 대기시간(PreGameDelay) 동안은 아직 실제 게임이 시작 전이므로 페널티를 주지 않는다.
+	// 기준 위치는 계속 최신으로 갱신해서, 게임이 시작되자마자 밀린 페널티를 맞지 않게 한다.
+	const ADaePoGameState* DaePoGameState = GetWorld() ? GetWorld()->GetGameState<ADaePoGameState>() : nullptr;
+	if (DaePoGameState && !DaePoGameState->bGameStarted)
+	{
+		LastStillnessCheckLocation = GetActorLocation();
+		return;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const float MovedDistance = FVector::Dist(CurrentLocation, LastStillnessCheckLocation);
+	LastStillnessCheckLocation = CurrentLocation;
+
+	if (MovedDistance < MinMoveDistance)
+	{
+		ApplyDamage(StillnessDamage);
 	}
 }
 
