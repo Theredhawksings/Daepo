@@ -22,13 +22,12 @@ ADaePoLandmine::ADaePoLandmine()
 	// 플레이어 이동을 막으면 안 되므로(밟고 지나갈 수 있어야 함) 순수 시각적 표시로만 쓴다.
 	MineMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MineMeshAsset(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MineMeshAsset(
+		TEXT("/Script/Engine.StaticMesh'/Game/Fab/M35_Anti-Tank_Mine/mine_1.mine_1'"));
 	if (MineMeshAsset.Succeeded())
 	{
 		MineMesh->SetStaticMesh(MineMeshAsset.Object);
 	}
-	// 납작한 원판처럼 보이게 눌러서 경고 표시(지뢰처럼) 형태로 만든다.
-	MineMesh->SetRelativeScale3D(FVector(0.6f, 0.6f, 0.05f));
 
 	TriggerSphere = CreateDefaultSubobject<USphereComponent>(TEXT("TriggerSphere"));
 	TriggerSphere->SetupAttachment(RootComponent);
