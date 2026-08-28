@@ -224,26 +224,44 @@ void ADaePoProjectile::SpawnImpactVFX(const FVector& Location, const FVector& No
 		return;
 	}
 
-	const FVector SafeNormal = Normal.GetSafeNormal();
+	// Forward 축: 이펙트가 뿜어져 나가는 방향 = 충돌 표면의 법선 그대로.
+	// 바닥/벽/기둥 어디에 맞든 이 축은 항상 표면 바깥쪽을 정확히 향하고, 아래 스폰
+	// 위치 오프셋 방향과도 일치한다.
+	const FVector Forward = Normal.GetSafeNormal();
 
-	// 이펙트가 뿜어져 나가는 방향(Forward)은 항상 충돌 표면의 법선 그대로 쓴다 - 이래야
-	// 바닥/벽/기둥 어디에 맞든 표면 바깥쪽을 정확히 향하고, 아래 오프셋 방향과도 일치한다.
-	//
-	// 다만 Forward 축만 정해서는 나머지(Up/Right) 축이 하나로 정해지지 않는다(그 축을
-	// 중심으로 몇 도든 돌아갈 수 있음). 여기서 "월드 위(Up) 벡터를 Forward 에 수직인
-	// 평면에 내적으로 투영해서 성분을 제거"하면, 이 표면 위에서 낼 수 있는 "가장 위에
-	// 가까운" 방향을 구할 수 있다(그람-슈미트 직교화). 그 결과와 Forward 를 외적하면
-	// 나머지 축(Right)까지 포함한 완전한 직교 기저가 완성된다.
-	//
-	// FRotationMatrix::MakeFromX 가 정확히 이 계산(내적으로 투영 + 외적으로 나머지 축 계산,
-	// Forward 가 거의 완전히 위/아래를 향해 투영이 불안정해지는 경우의 대체 처리까지)을
-	// 이미 구현해 제공한다. 그래서 바닥이든 벽이든 기둥이든 각도 임계값이나 블렌드 비율
-	// 같은 임시방편 없이 항상 "표면을 정확히 향하면서 최대한 똑바로 선" 회전이 나온다.
-	const FRotator EffectRotation = FRotationMatrix::MakeFromX(SafeNormal).Rotator();
+	// Forward 축 하나만으로는 그 축을 중심으로 한 회전(롤)이 정해지지 않는다.
+	// "월드 위(Up) 벡터에서, Forward 방향 성분만큼을 내적으로 구해서 빼면" 그 결과는
+	// Forward 에 수직인 평면 위에 놓인 벡터가 되고, 이는 그 평면 위에서 월드 위와
+	// 가장 가까운 유일한 방향이다(근사가 아니라 사영 정리로 증명되는 정확한 값).
+	const float UpAlongForward = FVector::DotProduct(FVector::UpVector, Forward);
+	FVector Up = FVector::UpVector - Forward * UpAlongForward;
+
+	// Forward 가 정확히 수직(진짜 바닥/천장)이면 위 식의 결과가 영벡터가 되어 정규화가
+	// 불가능하다 — 이 경우 그 축을 중심으로 한 회전은 어느 방향이든 수학적으로 동등하므로,
+	// 임의의 기준 벡터(월드 X축)를 대신 사용한다.
+	if (Up.IsNearlyZero())
+	{
+		Up = FVector::ForwardVector;
+	}
+	Up.Normalize();
+
+	// 외적으로 Forward·Up 둘 다에 수직인 나머지 축(오른쪽 벡터)을 구해 직교 기저를 완성한다.
+	const FVector Right = FVector::CrossProduct(Up, Forward).GetSafeNormal();
+
+	// 부동소수 오차로 Up 이 Forward 와 완벽히 직교하지 않을 수 있으므로, 이미 서로
+	// 직교인 Forward·Right 를 다시 외적해 Up 을 재계산해서 세 축을 정확히 직교시킨다.
+	const FVector OrthogonalUp = FVector::CrossProduct(Forward, Right);
+
+	// 이 세 축(Forward/Right/OrthogonalUp)을 행렬의 어느 행(X/Y/Z축)에 넣느냐에 따라
+	// "이펙트가 실제로 어느 로컬 축으로 분사되는지"에 대한 가정이 달라진다. 나이아가라
+	// 에셋마다 그 축이 다르므로(스톡 에셋은 보통 로컬 Z축), 토글로 바로 바꿀 수 있게 한다.
+	const FRotator EffectRotation = bImpactVFXFacesLocalZ
+		? FMatrix(Right, OrthogonalUp, Forward, FVector::ZeroVector).Rotator()   // Forward 를 로컬 Z(위쪽)에 배치
+		: FMatrix(Forward, Right, OrthogonalUp, FVector::ZeroVector).Rotator(); // Forward 를 로컬 X(정면)에 배치
 
 	// 충돌 표면에 딱 붙여서 스폰하면 구형으로 퍼지는 파티클 절반이 벽/기둥 안으로 파고들어
 	// 뚫고 나온 것처럼 보인다. 표면 바깥쪽(Normal 방향)으로 살짝 띄워서 스폰한다.
-	const FVector SpawnLocation = Location + SafeNormal * ImpactVFXSurfaceOffset;
+	const FVector SpawnLocation = Location + Forward * ImpactVFXSurfaceOffset;
 
 	// bPreCullCheck 를 꺼서, 나이아가라가 "안 보여도 될 것 같다"고 자체 판단해 조용히
 	// 스폰을 건너뛰는 일이 없게 한다(대포 폭발처럼 플레이어가 직접 일으킨 이펙트는 항상 보여야 함).

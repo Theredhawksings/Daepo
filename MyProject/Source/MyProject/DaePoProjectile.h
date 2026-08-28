@@ -131,6 +131,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.0"))
 	float ImpactVFXSurfaceOffset = 80.0f;
 
+	/**
+	 * 계산된 "표면 바깥쪽" 방향을 이펙트의 로컬 Z축(위쪽)에 맞출지, X축(정면)에 맞출지.
+	 * 나이아가라 에셋마다 실제 분사 방향으로 쓰는 축이 다르다(스톡 에셋은 보통 Z축).
+	 * 회전이 90도 어긋나 보이면 이 값을 반대로 바꿔보면 된다.
+	 */
+	UPROPERTY(EditAnywhere, Category = "DaePo|Impact")
+	bool bImpactVFXFacesLocalZ = true;
+
 
 	/** 부딪힌 지점에 ImpactVFX 를 스폰한다 */
 	void SpawnImpactVFX(const FVector& Location, const FVector& Normal);
