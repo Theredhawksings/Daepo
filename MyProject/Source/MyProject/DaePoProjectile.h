@@ -131,16 +131,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.0"))
 	float ImpactVFXSurfaceOffset = 80.0f;
 
-	/** 충돌면의 Normal.Z 가 이 값 이상이면 "바닥"으로 간주해 표면 방향 그대로 스폰한다 */
-	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float FloorNormalThreshold = 0.7f;
-
-	/**
-	 * 벽(바닥이 아닌 면)에 맞았을 때, 표면 Normal 방향에서 월드 "위쪽" 방향으로 얼마나
-	 * 섞을지(0 = 표면 방향 그대로=옆으로 누움, 1 = 완전히 수직으로 세움).
-	 */
-	UPROPERTY(EditAnywhere, Category = "DaePo|Impact", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float WallImpactUprightBlend = 1.0f;
 
 	/** 부딪힌 지점에 ImpactVFX 를 스폰한다 */
 	void SpawnImpactVFX(const FVector& Location, const FVector& Normal);

@@ -18,6 +18,7 @@
 #include "MyProjectCharacter.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "Math/RotationMatrix.h"
 
 ADaePoProjectile::ADaePoProjectile()
 {
@@ -225,21 +226,28 @@ void ADaePoProjectile::SpawnImpactVFX(const FVector& Location, const FVector& No
 
 	const FVector SafeNormal = Normal.GetSafeNormal();
 
-	// 바닥(Normal 이 거의 위쪽)이면 표면 방향 그대로 쓰고, 벽처럼 옆을 향한 면이면
-	// 이펙트가 옆으로 완전히 누워 나오지 않도록 월드 위쪽 방향 쪽으로 어느 정도 세운다.
-	FVector EffectDirection = SafeNormal;
-	if (SafeNormal.Z < FloorNormalThreshold)
-	{
-		EffectDirection = FMath::Lerp(SafeNormal, FVector::UpVector, WallImpactUprightBlend).GetSafeNormal();
-	}
+	// 이펙트가 뿜어져 나가는 방향(Forward)은 항상 충돌 표면의 법선 그대로 쓴다 - 이래야
+	// 바닥/벽/기둥 어디에 맞든 표면 바깥쪽을 정확히 향하고, 아래 오프셋 방향과도 일치한다.
+	//
+	// 다만 Forward 축만 정해서는 나머지(Up/Right) 축이 하나로 정해지지 않는다(그 축을
+	// 중심으로 몇 도든 돌아갈 수 있음). 여기서 "월드 위(Up) 벡터를 Forward 에 수직인
+	// 평면에 내적으로 투영해서 성분을 제거"하면, 이 표면 위에서 낼 수 있는 "가장 위에
+	// 가까운" 방향을 구할 수 있다(그람-슈미트 직교화). 그 결과와 Forward 를 외적하면
+	// 나머지 축(Right)까지 포함한 완전한 직교 기저가 완성된다.
+	//
+	// FRotationMatrix::MakeFromX 가 정확히 이 계산(내적으로 투영 + 외적으로 나머지 축 계산,
+	// Forward 가 거의 완전히 위/아래를 향해 투영이 불안정해지는 경우의 대체 처리까지)을
+	// 이미 구현해 제공한다. 그래서 바닥이든 벽이든 기둥이든 각도 임계값이나 블렌드 비율
+	// 같은 임시방편 없이 항상 "표면을 정확히 향하면서 최대한 똑바로 선" 회전이 나온다.
+	const FRotator EffectRotation = FRotationMatrix::MakeFromX(SafeNormal).Rotator();
 
-	// 충돌 표면에 딱 붙여서 스폰하면 구형으로 퍼지는 파티클 절반이 벽 안으로 파고들어
-	// 벽을 뚫고 나온 것처럼 보인다. 표면 바깥쪽(Normal 방향)으로 살짝 띄워서 스폰한다.
+	// 충돌 표면에 딱 붙여서 스폰하면 구형으로 퍼지는 파티클 절반이 벽/기둥 안으로 파고들어
+	// 뚫고 나온 것처럼 보인다. 표면 바깥쪽(Normal 방향)으로 살짝 띄워서 스폰한다.
 	const FVector SpawnLocation = Location + SafeNormal * ImpactVFXSurfaceOffset;
 
 	// bPreCullCheck 를 꺼서, 나이아가라가 "안 보여도 될 것 같다"고 자체 판단해 조용히
 	// 스폰을 건너뛰는 일이 없게 한다(대포 폭발처럼 플레이어가 직접 일으킨 이펙트는 항상 보여야 함).
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactVFX, SpawnLocation, EffectDirection.Rotation(),
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactVFX, SpawnLocation, EffectRotation,
 		FVector(ImpactVFXScale), true, true, ENCPoolMethod::AutoRelease, false);
 }
 
