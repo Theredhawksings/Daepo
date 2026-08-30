@@ -28,6 +28,8 @@ ADaePoLandmine::ADaePoLandmine()
 	{
 		MineMesh->SetStaticMesh(MineMeshAsset.Object);
 	}
+	// 원본 크기가 좀 작아 보여서 살짝 키운다.
+	MineMesh->SetRelativeScale3D(FVector(1.3f, 1.3f, 1.3f));
 
 	TriggerSphere = CreateDefaultSubobject<USphereComponent>(TEXT("TriggerSphere"));
 	TriggerSphere->SetupAttachment(RootComponent);
