@@ -156,6 +156,22 @@ FText AMyProjectGameMode::FormatElapsedTime(double Seconds)
 
 void AMyProjectGameMode::NotifyPlayerDied()
 {
+	CheckForLastManStanding(nullptr);
+}
+
+void AMyProjectGameMode::Logout(AController* Exiting)
+{
+	// 플레이어가 죽지 않고 그냥 접속을 끊고 나간 경우도, 남은 인원이 최후의 1인인지
+	// 다시 확인해야 한다. Super::Logout 이 실제 정리(PlayerArray 제거 등)를 하기 전에
+	// 먼저 판정해서, 나가는 컨트롤러를 명시적으로 제외한 채로 센다(아직 이터레이터에
+	// 남아있을 수 있고, 그 폰의 IsDead() 는 false 라서 그냥 세면 살아있는 사람으로 잘못 집계됨).
+	CheckForLastManStanding(Cast<APlayerController>(Exiting));
+
+	Super::Logout(Exiting);
+}
+
+void AMyProjectGameMode::CheckForLastManStanding(const APlayerController* ExcludedController)
+{
 	if (!HasAuthority())
 	{
 		return;
@@ -165,15 +181,21 @@ void AMyProjectGameMode::NotifyPlayerDied()
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		const APlayerController* PC = It->Get();
-		const AMyProjectCharacter* Character = PC ? Cast<AMyProjectCharacter>(PC->GetPawn()) : nullptr;
+		if (!PC || PC == ExcludedController)
+		{
+			continue;
+		}
+
+		const AMyProjectCharacter* Character = Cast<AMyProjectCharacter>(PC->GetPawn());
 		if (Character && !Character->IsDead())
 		{
 			++AliveCount;
 		}
 	}
 
-	// 살아있는 인원이 1명 이하로 남으면(최후의 1인 결정, 또는 동시 전멸) 라운드를 끝내고
-	// 잠시 후 접속해 있는 전원(승자든 이미 죽은 사람이든)을 메인 메뉴로 돌려보낸다.
+	// 살아있는 인원이 1명 이하로 남으면(최후의 1인 결정, 동시 전멸, 또는 접속 종료로 인한
+	// 인원 감소) 라운드를 끝내고 잠시 후 접속해 있는 전원(승자든 이미 죽은 사람이든)을
+	// 메인 메뉴로 돌려보낸다.
 	if (AliveCount <= 1)
 	{
 		GetWorldTimerManager().SetTimer(ReturnToMenuTimerHandle, this, &AMyProjectGameMode::ReturnAllPlayersToMainMenu, ReturnToMenuDelay, false);

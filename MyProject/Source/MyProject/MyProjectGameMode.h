@@ -89,6 +89,12 @@ public:
 	 */
 	void NotifyPlayerDied();
 
+	/**
+	 * 플레이어가 죽지 않고 그냥 접속을 끊고 나갔을 때도(장시간 정지 페널티로 죽는 것과 달리
+	 * 캐릭터의 bIsDead 가 그대로 false 라서) 최후의 1인 판정을 다시 확인해야 한다.
+	 */
+	virtual void Logout(AController* Exiting) override;
+
 	/** 지뢰로 사용할 액터 클래스. 비워두면 지뢰 기능 자체가 꺼진다(스폰 안 함). */
 	UPROPERTY(EditAnywhere, Category = "Landmine")
 	TSubclassOf<class ADaePoLandmine> LandmineClass;
@@ -135,6 +141,13 @@ private:
 
 	/** 대기시간이 끝나면 호출됨: GameState.bGameStarted 를 켜고 생존 타이머를 시작한다 */
 	void BeginActualGame();
+
+	/**
+	 * NotifyPlayerDied/Logout 이 공유하는 실제 판정 로직. ExcludedController 를 넘기면
+	 * (접속 종료 중인 컨트롤러) 그 폰의 생존 여부와 상관없이 무조건 인원 수에서 제외한다
+	 * (아직 완전히 정리되기 전이라 PlayerControllerIterator 에 남아있을 수 있어서).
+	 */
+	void CheckForLastManStanding(const APlayerController* ExcludedController);
 
 	/** ReturnToMenuDelay 만큼 대기했다가 접속해 있는 전원을 메인 메뉴로 돌려보내는 타이머 */
 	FTimerHandle ReturnToMenuTimerHandle;
