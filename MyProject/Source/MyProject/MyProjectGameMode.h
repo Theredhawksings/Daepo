@@ -103,15 +103,19 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Landmine", meta = (ClampMin = "0"))
 	int32 MaxLandmineCount = 6;
 
-	/** 지뢰를 무작위로 배치할 원형 구역의 중심(월드 좌표) */
-	UPROPERTY(EditAnywhere, Category = "Landmine")
-	FVector LandmineAreaCenter = FVector::ZeroVector;
+	/** 이 주기(초)마다 살아있는 플레이어들의 현재 위치를 "발자국"으로 기록한다 */
+	UPROPERTY(EditAnywhere, Category = "Landmine", meta = (ClampMin = "0.1"))
+	float FootstepSampleInterval = 2.0f;
 
-	/** 위 중심에서 이 반경(cm) 안에 무작위로 배치한다 */
+	/** 발자국을 남긴 뒤 실제로 그 자리에 지뢰가 깔리기까지 최소 대기 시간(초) */
 	UPROPERTY(EditAnywhere, Category = "Landmine", meta = (ClampMin = "0.0"))
-	float LandmineAreaRadius = 3000.0f;
+	float MinFootstepMineDelay = 3.0f;
 
-	/** 지뢰가 하나 터졌을 때(ADaePoLandmine 이 호출) 개수를 줄이고 다른 곳에 새 지뢰를 다시 채운다 */
+	/** 발자국을 남긴 뒤 실제로 그 자리에 지뢰가 깔리기까지 최대 대기 시간(초) */
+	UPROPERTY(EditAnywhere, Category = "Landmine", meta = (ClampMin = "0.0"))
+	float MaxFootstepMineDelay = 8.0f;
+
+	/** 지뢰가 하나 터졌을 때(ADaePoLandmine 이 호출) 개수만 줄인다. 새 지뢰는 발자국을 통해 자연스럽게 다시 채워진다. */
 	void OnLandmineConsumed();
 
 protected:
@@ -158,14 +162,18 @@ private:
 	/** 현재 맵에 살아있는(아직 안 터진) 지뢰 개수 */
 	int32 CurrentLandmineCount = 0;
 
-	/** 부족한 만큼(MaxLandmineCount 까지) 새 지뢰를 무작위 위치에 채운다 */
-	void SpawnLandminesUpToCap();
+	/** FootstepSampleInterval 마다 반복 호출되어 살아있는 플레이어들의 현재 위치를 기록해둔다 */
+	FTimerHandle FootstepSampleTimerHandle;
 
-	/** 지뢰 하나를 무작위 위치에 스폰한다(성공하면 CurrentLandmineCount 증가) */
-	void SpawnOneLandmine();
+	/** 살아있는 플레이어 각각의 현재 위치에, 무작위 지연 뒤 지뢰 스폰을 예약한다 */
+	void SampleFootstepsForLandmines();
 
-	/** LandmineAreaCenter/LandmineAreaRadius 안에서 땅 위 무작위 지점을 찾는다(위에서 아래로 라인 트레이스) */
-	bool FindRandomLandminePoint(FVector& OutLocation) const;
+	/**
+	 * 실제로 지뢰를 그 위치에 스폰한다. 발자국을 남긴 시점으로부터 지연이 있었으므로
+	 * 이미 그 자리를 벗어났을 가능성이 높지만, 혹시 몰라 스폰 직전에 그 자리에 아무도
+	 * 없는지 한 번 더 확인해서 즉시 밟혀 억울하게 피해를 입는 일을 막는다.
+	 */
+	void TrySpawnLandmineAt(FVector Location);
 };
 
 

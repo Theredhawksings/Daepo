@@ -8,6 +8,7 @@
 #include "MyProjectCharacter.h"
 #include "DaePoGameState.h"
 #include "DaePoLandmine.h"
+#include "Engine/OverlapResult.h"
 
 AMyProjectGameMode::AMyProjectGameMode()
 {
@@ -49,7 +50,14 @@ void AMyProjectGameMode::BeginActualGame()
 	}
 
 	StartSurvivalTimer();
-	SpawnLandminesUpToCap();
+
+	// 지뢰는 미리 깔아두는 대신, 게임이 시작된 뒤 플레이어들이 실제로 지나간 자리를
+	// 따라 자연스럽게 채워진다(FootstepSampleInterval 마다 반복 호출됨).
+	if (LandmineClass)
+	{
+		GetWorldTimerManager().SetTimer(FootstepSampleTimerHandle, this,
+			&AMyProjectGameMode::SampleFootstepsForLandmines, FootstepSampleInterval, true);
+	}
 }
 
 void AMyProjectGameMode::Tick(float DeltaSeconds)
@@ -209,33 +217,58 @@ void AMyProjectGameMode::ReturnAllPlayersToMainMenu()
 
 void AMyProjectGameMode::OnLandmineConsumed()
 {
+	// 개수만 줄인다 - 새 지뢰는 SampleFootstepsForLandmines 가 계속 돌면서
+	// 플레이어들이 지나간 자리에 자연스럽게 다시 채운다.
 	--CurrentLandmineCount;
-	SpawnOneLandmine();
 }
 
-void AMyProjectGameMode::SpawnLandminesUpToCap()
-{
-	if (!LandmineClass)
-	{
-		return;
-	}
-
-	const int32 NeedToSpawn = MaxLandmineCount - CurrentLandmineCount;
-	for (int32 i = 0; i < NeedToSpawn; ++i)
-	{
-		SpawnOneLandmine();
-	}
-}
-
-void AMyProjectGameMode::SpawnOneLandmine()
+void AMyProjectGameMode::SampleFootstepsForLandmines()
 {
 	if (!LandmineClass || CurrentLandmineCount >= MaxLandmineCount)
 	{
 		return;
 	}
 
-	FVector SpawnLocation;
-	if (!FindRandomLandminePoint(SpawnLocation))
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		const APlayerController* PC = It->Get();
+		const AMyProjectCharacter* Character = PC ? Cast<AMyProjectCharacter>(PC->GetPawn()) : nullptr;
+		if (!Character || Character->IsDead())
+		{
+			continue;
+		}
+
+		// 지금 이 순간 실제로 캐릭터가 서 있던(=밟고 지나갈 수 있음이 보장된) 자리를
+		// 기록해두고, 무작위 지연 뒤에 그 자리에 지뢰를 스폰한다. 지연을 두는 이유는
+		// 방금까지 서 있던 그 사람이 바로 밟혀서 억울하게 피해를 입지 않게 하기 위함이다.
+		const FVector FootLocation = Character->GetActorLocation();
+		const float Delay = FMath::FRandRange(MinFootstepMineDelay, MaxFootstepMineDelay);
+
+		FTimerHandle Unused;
+		GetWorldTimerManager().SetTimer(Unused, FTimerDelegate::CreateUObject(
+			this, &AMyProjectGameMode::TrySpawnLandmineAt, FootLocation), Delay, false);
+	}
+}
+
+void AMyProjectGameMode::TrySpawnLandmineAt(FVector Location)
+{
+	if (!LandmineClass || CurrentLandmineCount >= MaxLandmineCount)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// 예약된 지연 동안 이미 그 자리를 벗어났을 가능성이 높지만, 혹시 몰라 스폰 직전에
+	// 그 자리에 아무도 없는지 한 번 더 확인해서 즉시 밟혀 억울하게 피해를 입는 일을 막는다.
+	TArray<FOverlapResult> Overlaps;
+	const FCollisionShape Sphere = FCollisionShape::MakeSphere(100.0f);
+	World->OverlapMultiByObjectType(Overlaps, Location, FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn), Sphere);
+	if (Overlaps.Num() > 0)
 	{
 		return;
 	}
@@ -243,40 +276,10 @@ void AMyProjectGameMode::SpawnOneLandmine()
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	if (GetWorld()->SpawnActor<ADaePoLandmine>(LandmineClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams))
+	if (World->SpawnActor<ADaePoLandmine>(LandmineClass, Location, FRotator::ZeroRotator, SpawnParams))
 	{
 		++CurrentLandmineCount;
 	}
-}
-
-bool AMyProjectGameMode::FindRandomLandminePoint(FVector& OutLocation) const
-{
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return false;
-	}
-
-	// 원형 구역 안에서 무작위 XY 를 뽑고, 그 위치에서 위->아래로 라인 트레이스해서
-	// 실제 바닥 높이를 찾는다(NavMesh 없이도 동작하도록 하는 간단한 방식).
-	for (int32 Attempt = 0; Attempt < 10; ++Attempt)
-	{
-		const float Angle = FMath::FRandRange(0.0f, 2.0f * PI);
-		const float Dist = FMath::FRandRange(0.0f, LandmineAreaRadius);
-		const FVector XY = LandmineAreaCenter + FVector(FMath::Cos(Angle) * Dist, FMath::Sin(Angle) * Dist, 0.0f);
-
-		const FVector TraceStart = XY + FVector(0.0f, 0.0f, 2000.0f);
-		const FVector TraceEnd = XY - FVector(0.0f, 0.0f, 2000.0f);
-
-		FHitResult Hit;
-		if (World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility))
-		{
-			OutLocation = Hit.Location;
-			return true;
-		}
-	}
-
-	return false;
 }
 
 void AMyProjectGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
