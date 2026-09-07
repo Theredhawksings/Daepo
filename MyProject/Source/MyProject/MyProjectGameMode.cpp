@@ -241,7 +241,11 @@ void AMyProjectGameMode::SampleFootstepsForLandmines()
 		// 지금 이 순간 실제로 캐릭터가 서 있던(=밟고 지나갈 수 있음이 보장된) 자리를
 		// 기록해두고, 무작위 지연 뒤에 그 자리에 지뢰를 스폰한다. 지연을 두는 이유는
 		// 방금까지 서 있던 그 사람이 바로 밟혀서 억울하게 피해를 입지 않게 하기 위함이다.
-		const FVector FootLocation = Character->GetActorLocation();
+		//
+		// GetActorLocation() 은 캡슐의 중심(허리 높이)을 반환하므로, 그 절반 높이만큼
+		// 빼서 실제 발이 닿는 바닥 높이로 보정한다(안 하면 지뢰가 허공에 붕 떠서 스폰됨).
+		FVector FootLocation = Character->GetActorLocation();
+		FootLocation.Z -= Character->GetSimpleCollisionHalfHeight();
 		const float Delay = FMath::FRandRange(MinFootstepMineDelay, MaxFootstepMineDelay);
 
 		FTimerHandle Unused;
