@@ -9,6 +9,7 @@
 #include "DaePoGameState.h"
 #include "DaePoLandmine.h"
 #include "Engine/OverlapResult.h"
+#include "Math/RotationMatrix.h"
 
 AMyProjectGameMode::AMyProjectGameMode()
 {
@@ -277,10 +278,24 @@ void AMyProjectGameMode::TrySpawnLandmineAt(FVector Location)
 		return;
 	}
 
+	// 오르막길 등 경사면에도 지면에 딱 붙어 보이도록, 그 지점에서 실제 바닥 법선을
+	// 구해서 지뢰의 "위" 축을 그 법선에 맞춘다(평지면 그대로 수평으로 나옴).
+	FVector SpawnLocation = Location;
+	FRotator SpawnRotation = FRotator::ZeroRotator;
+
+	FHitResult GroundHit;
+	const FVector TraceStart = Location + FVector(0.0f, 0.0f, 50.0f);
+	const FVector TraceEnd = Location - FVector(0.0f, 0.0f, 50.0f);
+	if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility))
+	{
+		SpawnLocation = GroundHit.Location;
+		SpawnRotation = FRotationMatrix::MakeFromZ(GroundHit.Normal).Rotator();
+	}
+
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	if (World->SpawnActor<ADaePoLandmine>(LandmineClass, Location, FRotator::ZeroRotator, SpawnParams))
+	if (World->SpawnActor<ADaePoLandmine>(LandmineClass, SpawnLocation, SpawnRotation, SpawnParams))
 	{
 		++CurrentLandmineCount;
 	}
