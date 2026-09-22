@@ -84,7 +84,7 @@ protected:
 
 	/** 발사되는 구슬 크기(스케일). 에디터에서 조정 가능. */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Fire", meta = (AllowPreserveRatio = "true"))
-	FVector ProjectileScale = FVector(2.0f, 2.0f, 2.0f);
+	FVector ProjectileScale = FVector(3.0f, 3.0f, 3.0f);
 
 	/** 발사음. 포구 위치에서 3D 사운드로 재생된다. 비우면 무음. */
 	UPROPERTY(EditAnywhere, Category = "DaePo|Sound")
