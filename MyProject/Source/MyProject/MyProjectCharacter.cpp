@@ -401,17 +401,26 @@ void AMyProjectCharacter::HandleDeath()
 		OnDeath();
 	}
 
-	// --- 슬로모션 → 잠시 후 레벨 재시작. 서버만 발동시킨다. ---
-	// TimeDilation 은 WorldSettings 를 통해 엔진이 자동으로 모든 클라이언트에 복제하므로,
-	// 서버가 한 번만 걸면 모두의 화면이 함께 느려진다. 클라이언트가 각자 걸면 서로 다른
-	// 배율로 따로 놀거나 서버 값에 곧바로 덮어써진다.
+	// 최후의 1인 판정은 서버만 한다(슬로모션 없이 실제 시간으로).
 	if (HasAuthority())
 	{
-		UGameplayStatics::SetGlobalTimeDilation(this, DeathSlowMotionScale);
+		GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::HandleDeathTimerElapsed, DeathRestartDelay, false);
+	}
 
-		// 타이머는 느려진 게임 시간으로 흐르므로, 실제 체감 시간(DeathRestartDelay)이 되도록 배율을 곱한다.
-		const float TimerDelay = DeathRestartDelay * DeathSlowMotionScale;
-		GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::HandleDeathTimerElapsed, TimerDelay, false);
+	// 슬로모션은 죽은 "사람" 본인 화면에서만. 전역 TimeDilation 은 복제돼서 모두가 느려지므로,
+	// 복제 안 되는 DemoPlayTimeDilation 을 이 머신에서만 건다. 봇(AI)은 화면이 없으니 제외.
+	// shortcut: 호스트(리슨 서버)는 자기 월드가 곧 서버라 느리게 하면 모두가 느려져서 제외, 호스트 연출이 필요하면 카메라 효과로 대체.
+	if (IsPlayerControlled() && IsLocallyControlled() && !HasAuthority())
+	{
+		if (AWorldSettings* WS = GetWorld()->GetWorldSettings())
+		{
+			WS->DemoPlayTimeDilation = DeathSlowMotionScale;
+
+			// 타이머도 느려진 시간으로 흐르므로 배율을 곱해야 실제 DeathRestartDelay 뒤에 풀린다.
+			FTimerHandle Unused;
+			GetWorldTimerManager().SetTimer(Unused, [WS]() { WS->DemoPlayTimeDilation = 1.0f; },
+				DeathRestartDelay * DeathSlowMotionScale, false);
+		}
 	}
 }
 
@@ -442,9 +451,6 @@ void AMyProjectCharacter::HandleDeathTimerElapsed()
 	{
 		return;
 	}
-
-	// 시간 배율을 원래대로 되돌린다(전역 슬로모션이라 다른 생존자들에게도 걸려 있었음).
-	UGameplayStatics::SetGlobalTimeDilation(this, 1.0f);
 
 	// 살아있는 인원이 1명 이하로 남았는지는 GameMode 가 판정한다. 아직 2명 이상 살아있으면
 	// 이 캐릭터는 이미 죽은 채로 그냥 두고(관전 상태) 나머지끼리 게임을 계속 진행한다.
