@@ -23,7 +23,8 @@ public class MyProject : ModuleRules
 			"EngineCameras",
 			"NetCore",
 			"Sockets",
-			"Niagara"
+			"Niagara",
+			"NavigationSystem"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

@@ -17,6 +17,7 @@
 #include "MyProjectCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "DaePoGameState.h"
+#include "EngineUtils.h"
 
 ADaePo::ADaePo()
 {
@@ -189,31 +190,21 @@ APawn* ADaePo::FindNearestPlayerInRange(float Range) const
 	APawn* Best = nullptr;
 	float BestDistSq = FMath::Square(Range);
 
-	// GetPlayerPawn(0) 은 "이 머신의 로컬 플레이어"만 찾기 때문에, 서버에서 호출하면
-	// 네트워크로 접속한 다른 클라이언트의 폰은 절대 찾지 못한다(호스트 자신만 보임).
-	// 접속한 모든 플레이어 컨트롤러를 순회해야 멀티플레이어에서 제대로 동작한다.
-	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	// PlayerController 대신 캐릭터 자체를 순회한다 - GetPlayerPawn(0)/PlayerControllerIterator
+	// 는 "플레이어"만 찾기 때문에, AIController 가 조종하는 테스트용 봇은 못 찾는다.
+	for (TActorIterator<AMyProjectCharacter> It(World); It; ++It)
 	{
-		APlayerController* PC = It->Get();
-		APawn* Pawn = PC ? PC->GetPawn() : nullptr;
-		if (!Pawn)
+		AMyProjectCharacter* Character = *It;
+		if (Character->IsDead())
 		{
 			continue;
 		}
 
-		if (const AMyProjectCharacter* Character = Cast<AMyProjectCharacter>(Pawn))
-		{
-			if (Character->IsDead())
-			{
-				continue;
-			}
-		}
-
-		const float DistSq = FVector::DistSquared(Pawn->GetActorLocation(), GetActorLocation());
+		const float DistSq = FVector::DistSquared(Character->GetActorLocation(), GetActorLocation());
 		if (DistSq <= BestDistSq)
 		{
 			BestDistSq = DistSq;
-			Best = Pawn;
+			Best = Character;
 		}
 	}
 

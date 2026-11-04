@@ -95,6 +95,10 @@ public:
 	 */
 	virtual void Logout(AController* Exiting) override;
 
+	/** 혼자 테스트할 때 채워 넣을 더미 봇 숫자. 0이면 안 만든다. */
+	UPROPERTY(EditAnywhere, Category = "Bot", meta = (ClampMin = "0"))
+	int32 NumberOfBots = 0;
+
 	/** 지뢰로 사용할 액터 클래스. 비워두면 지뢰 기능 자체가 꺼진다(스폰 안 함). */
 	UPROPERTY(EditAnywhere, Category = "Landmine")
 	TSubclassOf<class ADaePoLandmine> LandmineClass;
@@ -145,6 +149,9 @@ private:
 
 	/** 대기시간이 끝나면 호출됨: GameState.bGameStarted 를 켜고 생존 타이머를 시작한다 */
 	void BeginActualGame();
+
+	/** NumberOfBots 만큼 더미 봇을 PlayerStart 위치에 스폰한다(실제 플레이어 폰 클래스를 그대로 재사용) */
+	void SpawnBots();
 
 	/**
 	 * NotifyPlayerDied/Logout 이 공유하는 실제 판정 로직. ExcludedController 를 넘기면

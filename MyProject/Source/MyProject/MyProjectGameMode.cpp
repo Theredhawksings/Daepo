@@ -10,6 +10,8 @@
 #include "DaePoLandmine.h"
 #include "Engine/OverlapResult.h"
 #include "Math/RotationMatrix.h"
+#include "BotAIController.h"
+#include "EngineUtils.h"
 
 AMyProjectGameMode::AMyProjectGameMode()
 {
@@ -24,6 +26,8 @@ AMyProjectGameMode::AMyProjectGameMode()
 void AMyProjectGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SpawnBots();
 
 	if (!bAutoStart)
 	{
@@ -186,17 +190,18 @@ void AMyProjectGameMode::CheckForLastManStanding(const APlayerController* Exclud
 		return;
 	}
 
+	// PlayerController 가 아니라 캐릭터 자체를 센다 - 봇은 AIController 가 조종해서
+	// PlayerControllerIterator 에 안 잡히므로, 그래야 봇도 생존 인원에 포함된다.
 	int32 AliveCount = 0;
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	for (TActorIterator<AMyProjectCharacter> It(GetWorld()); It; ++It)
 	{
-		const APlayerController* PC = It->Get();
-		if (!PC || PC == ExcludedController)
+		const AMyProjectCharacter* Character = *It;
+		if (Character->GetController() == ExcludedController)
 		{
 			continue;
 		}
 
-		const AMyProjectCharacter* Character = Cast<AMyProjectCharacter>(PC->GetPawn());
-		if (Character && !Character->IsDead())
+		if (!Character->IsDead())
 		{
 			++AliveCount;
 		}
@@ -298,6 +303,34 @@ void AMyProjectGameMode::TrySpawnLandmineAt(FVector Location)
 	if (World->SpawnActor<ADaePoLandmine>(LandmineClass, SpawnLocation, SpawnRotation, SpawnParams))
 	{
 		++CurrentLandmineCount;
+	}
+}
+
+void AMyProjectGameMode::SpawnBots()
+{
+	if (!HasAuthority() || NumberOfBots <= 0)
+	{
+		return;
+	}
+
+	for (int32 i = 0; i < NumberOfBots; ++i)
+	{
+		AActor* Start = FindPlayerStart(nullptr);
+		if (!Start)
+		{
+			continue;
+		}
+
+		APawn* BotPawn = GetWorld()->SpawnActor<APawn>(DefaultPawnClass, Start->GetActorLocation(), Start->GetActorRotation());
+		if (!BotPawn)
+		{
+			continue;
+		}
+
+		if (ABotAIController* BotController = GetWorld()->SpawnActor<ABotAIController>(Start->GetActorLocation(), Start->GetActorRotation()))
+		{
+			BotController->Possess(BotPawn);
+		}
 	}
 }
 
