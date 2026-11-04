@@ -18,7 +18,7 @@ public:
 	float WanderRadius = 1500.0f;
 
 protected:
-	virtual void BeginPlay() override;
+	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
 
 private:
