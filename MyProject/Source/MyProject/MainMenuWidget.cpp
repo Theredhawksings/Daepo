@@ -7,6 +7,8 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Colors/SColorBlock.h"
@@ -14,6 +16,22 @@
 
 namespace
 {
+	struct FMapCard
+	{
+		const TCHAR* Label;
+		const TCHAR* Path; // 비어 있으면 "준비 중" 카드
+	};
+
+	// 맵 선택 화면의 카드(위 3개, 아래 3개). 새 맵은 DefaultGame.ini 의 MapsToCook 에도 넣어야 패키징된다.
+	const FMapCard MapCards[] = {
+		{ TEXT("Map 1"), TEXT("/Game/ThirdPerson/Lvl_ThirdPerson") },
+		{ TEXT("Map 2"), TEXT("/Game/ThirdPerson/Lvl_ThirdPerson1") },
+		{ TEXT("준비 중"), TEXT("") },
+		{ TEXT("준비 중"), TEXT("") },
+		{ TEXT("준비 중"), TEXT("") },
+		{ TEXT("준비 중"), TEXT("") },
+	};
+
 	/** 배경색이 있는 버튼을 만드는 헬퍼 */
 	TSharedRef<SWidget> MakeColoredButton(const FString& Label, const FLinearColor& Tint, const FOnClicked& OnClicked)
 	{
@@ -76,7 +94,24 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 		];
 	}
 
-	return SNew(SBox)
+	TSharedRef<SUniformGridPanel> MapGrid = SNew(SUniformGridPanel).SlotPadding(FMargin(12.0f));
+	for (int32 i = 0; i < UE_ARRAY_COUNT(MapCards); ++i)
+	{
+		const bool bAvailable = MapCards[i].Path[0] != 0;
+		MapGrid->AddSlot(i % 3, i / 3)
+		[
+			SNew(SBox)
+			.WidthOverride(220.0f)
+			.HeightOverride(170.0f)
+			.IsEnabled(bAvailable)
+			[
+				MakeColoredButton(MapCards[i].Label, FLinearColor(0.15f, 0.35f, 0.75f),
+					FOnClicked::CreateUObject(this, &UMainMenuWidget::OnMapClicked, FName(MapCards[i].Path)))
+			]
+		];
+	}
+
+	TSharedRef<SWidget> MenuScreen = SNew(SBox)
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -135,12 +170,66 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 							.HeightOverride(50.0f)
 							[
 								MakeColoredButton(TEXT("Start Game"), FLinearColor(0.15f, 0.6f, 0.25f),
-									FOnClicked::CreateUObject(this, &UMainMenuWidget::OnStartClicked))
+									FOnClicked::CreateUObject(this, &UMainMenuWidget::ShowScreen, 1))
 							]
 						]
 					]
 				]
 			]
+		];
+
+	TSharedRef<SWidget> MapScreen = SNew(SBox)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SBorder)
+			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(FLinearColor(0.02f, 0.02f, 0.03f, 0.85f))
+			.Padding(FMargin(32.0f, 24.0f))
+			[
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 0, 0, 12)
+				.HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(TEXT("맵 선택")))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 26))
+					.ColorAndOpacity(FLinearColor::White)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					MapGrid
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 12, 0, 0)
+				.HAlign(HAlign_Center)
+				[
+					SNew(SBox)
+					.WidthOverride(160.0f)
+					.HeightOverride(42.0f)
+					[
+						MakeColoredButton(TEXT("뒤로"), FLinearColor(0.5f, 0.15f, 0.15f),
+							FOnClicked::CreateUObject(this, &UMainMenuWidget::ShowScreen, 0))
+					]
+				]
+			]
+		];
+
+	return SAssignNew(ScreenSwitcher, SWidgetSwitcher)
+		+ SWidgetSwitcher::Slot()
+		[
+			MenuScreen
+		]
+		+ SWidgetSwitcher::Slot()
+		[
+			MapScreen
 		];
 }
 
@@ -153,8 +242,14 @@ FReply UMainMenuWidget::OnColorClicked(int32 ColorIndex)
 	return FReply::Handled();
 }
 
-FReply UMainMenuWidget::OnStartClicked()
+FReply UMainMenuWidget::ShowScreen(int32 ScreenIndex)
 {
-	UGameplayStatics::OpenLevel(this, MapToStart);
+	ScreenSwitcher->SetActiveWidgetIndex(ScreenIndex);
+	return FReply::Handled();
+}
+
+FReply UMainMenuWidget::OnMapClicked(FName MapName)
+{
+	UGameplayStatics::OpenLevel(this, MapName);
 	return FReply::Handled();
 }
