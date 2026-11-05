@@ -26,7 +26,7 @@ namespace
 	const FMapCard MapCards[] = {
 		{ TEXT("Map 1"), TEXT("/Game/ThirdPerson/Lvl_ThirdPerson") },
 		{ TEXT("Map 2"), TEXT("/Game/ThirdPerson/Lvl_ThirdPerson1") },
-		{ TEXT("준비 중"), TEXT("") },
+		{ TEXT("근정전"), TEXT("/Game/GeunjeongjeonComplex/Map/Demo_Geunjeongjeon") },
 		{ TEXT("준비 중"), TEXT("") },
 		{ TEXT("준비 중"), TEXT("") },
 		{ TEXT("준비 중"), TEXT("") },
