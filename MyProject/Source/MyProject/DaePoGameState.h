@@ -17,12 +17,8 @@ class MYPROJECT_API ADaePoGameState : public AGameStateBase
 	GENERATED_BODY()
 
 public:
-	/** 서버가 매 틱 갱신하는 생존 경과 시간(초) */
-	UPROPERTY(Replicated)
-	float ReplicatedElapsedSeconds = 0.0f;
-
 	/**
-	 * true 가 되기 전까지는 대포가 발사하지 않고 생존 타이머도 돌지 않는다.
+	 * true 가 되기 전까지는 대포가 발사하지 않는다.
 	 * 호스트하자마자 바로 시작되면 다른 사람이 합류할 시간이 없어서, 서버가
 	 * 일정 대기시간이 지난 뒤 한 번만 이 값을 true 로 바꾼다(그 결과가 복제됨).
 	 */

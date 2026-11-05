@@ -12,6 +12,9 @@
 #include "DaePoGameState.h"
 #include "PauseMenuWidget.h"
 #include "CountdownWidget.h"
+#include "ResultWidget.h"
+#include "MyProjectCharacter.h"
+#include "Engine/Engine.h"
 #include "InputCoreTypes.h"
 
 void AMyProjectPlayerController::BeginPlay()
@@ -109,6 +112,9 @@ void AMyProjectPlayerController::SetupInputComponent()
 		if (InputComponent)
 		{
 			InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AMyProjectPlayerController::TogglePauseMenu);
+#if !UE_BUILD_SHIPPING
+			InputComponent->BindKey(EKeys::I, IE_Pressed, this, &AMyProjectPlayerController::ToggleDebugInvulnerable);
+#endif
 		}
 	}
 }
@@ -143,6 +149,30 @@ void AMyProjectPlayerController::TogglePauseMenu()
 		bShowMouseCursor = true;
 		SetInputMode(FInputModeGameAndUI());
 		PauseMenuWidget->AddToViewport(10); // 대기실 UI 등보다 위에 그려지도록 ZOrder 를 높게
+	}
+}
+
+void AMyProjectPlayerController::ToggleDebugInvulnerable()
+{
+	// shortcut: 서버에 있는 폰만 바뀌므로 싱글플레이/호스트 전용, 원격 클라이언트에서는 효과 없음.
+	if (AMyProjectCharacter* MyCharacter = Cast<AMyProjectCharacter>(GetPawn()))
+	{
+		MyCharacter->SetInvulnerable(!MyCharacter->IsInvulnerable());
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, MyCharacter->IsInvulnerable() ? TEXT("무적 ON") : TEXT("무적 OFF"));
+		}
+	}
+}
+
+void AMyProjectPlayerController::ClientShowResult_Implementation(bool bWon)
+{
+	if (UResultWidget* Widget = CreateWidget<UResultWidget>(this, UResultWidget::StaticClass()))
+	{
+		Widget->bWon = bWon;
+		Widget->AddToViewport(20); // ESC 메뉴보다 위에
+		bShowMouseCursor = true;
+		SetInputMode(FInputModeUIOnly());
 	}
 }
 

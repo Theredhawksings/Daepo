@@ -388,21 +388,17 @@ void AMyProjectCharacter::HandleDeath()
 		GetMesh()->PlayAnimation(DeathAnim, false);
 	}
 
-	// "GAME OVER" 표시와 사망 이벤트는 실제로 그 폰을 조작하던 화면에서만 띄운다.
+	// 사망 이벤트는 실제로 그 폰을 조작하던 화면에서만 띄운다.
 	// (다른 플레이어가 죽는 걸 구경하는 화면에는 내가 죽은 게 아니므로 띄우지 않는다)
 	if (IsLocallyControlled())
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GAME OVER"));
-		}
 		OnDeath();
 	}
 
-	// 최후의 1인 판정은 서버만 한다(슬로모션 없이 실제 시간으로).
-	if (HasAuthority())
+	// 승패 판정은 서버만 한다(GameMode 는 서버에만 있다).
+	if (AMyProjectGameMode* GM = GetWorld()->GetAuthGameMode<AMyProjectGameMode>())
 	{
-		GetWorldTimerManager().SetTimer(RestartTimerHandle, this, &AMyProjectCharacter::HandleDeathTimerElapsed, DeathRestartDelay, false);
+		GM->NotifyPlayerDied();
 	}
 
 	// 슬로모션은 죽은 "사람" 본인 화면에서만. 전역 TimeDilation 은 복제돼서 모두가 느려지므로,
@@ -440,20 +436,4 @@ UAnimSequence* AMyProjectCharacter::PickDeathAnim() const
 		return (LocalDir.X >= 0.0f) ? DeathAnimBack : DeathAnimFront;
 	}
 	return (LocalDir.Y >= 0.0f) ? DeathAnimLeft : DeathAnimRight;
-}
-
-void AMyProjectCharacter::HandleDeathTimerElapsed()
-{
-	// 판정은 서버만 한다.
-	if (!HasAuthority())
-	{
-		return;
-	}
-
-	// 살아있는 인원이 1명 이하로 남았는지는 GameMode 가 판정한다. 아직 2명 이상 살아있으면
-	// 이 캐릭터는 이미 죽은 채로 그냥 두고(관전 상태) 나머지끼리 게임을 계속 진행한다.
-	if (AMyProjectGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AMyProjectGameMode>() : nullptr)
-	{
-		GM->NotifyPlayerDied();
-	}
 }

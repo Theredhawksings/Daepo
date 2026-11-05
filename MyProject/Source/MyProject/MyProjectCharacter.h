@@ -193,15 +193,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Health|Death", meta = (ClampMin = "0.05", ClampMax = "1.0"))
 	float DeathSlowMotionScale = 0.2f;
 
-	/** 사망 후 레벨이 재시작되기까지의 시간(실제 초, 슬로모션과 무관) */
+	/** 사망 슬로모션이 유지되는 시간(실제 초) */
 	UPROPERTY(EditAnywhere, Category = "Health|Death", meta = (ClampMin = "0.1"))
 	float DeathRestartDelay = 2.0f;
-
-	/** 슬로모션을 풀고, GameMode 에 이 죽음을 알려서 최후의 1인이 가려졌는지 판정시킨다 */
-	void HandleDeathTimerElapsed();
-
-	/** 사망 → 판정 지연 타이머 */
-	FTimerHandle RestartTimerHandle;
 
 	/** StillnessCheckInterval 마다 반복 호출되어 그동안 충분히 움직였는지 확인한다(서버 전용) */
 	void CheckStillnessPenalty();

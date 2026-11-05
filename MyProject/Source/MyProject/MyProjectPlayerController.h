@@ -66,11 +66,21 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class UPauseMenuWidget> PauseMenuWidget;
 
+public:
+	/** 게임이 끝났을 때 서버가 호출해 이 플레이어 화면에 승리/패배 화면을 띄운다 */
+	UFUNCTION(Client, Reliable)
+	void ClientShowResult(bool bWon);
+
+protected:
+
 	/** Gameplay initialization */
 	virtual void BeginPlay() override;
 
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
+
+	/** 디버그용: I 키로 내 캐릭터 무적을 켜고 끈다(Shipping 빌드에서는 키가 연결되지 않는다) */
+	void ToggleDebugInvulnerable();
 
 	/** Returns true if the player should use UMG touch controls */
 	bool ShouldUseTouchControls() const;
