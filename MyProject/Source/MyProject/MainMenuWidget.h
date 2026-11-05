@@ -30,6 +30,7 @@ private:
 	/** 접속할 IP 를 입력받는 텍스트박스(참조를 들고 있어야 클릭 시 값을 읽을 수 있다) */
 	TSharedPtr<class SEditableTextBox> IPTextBox;
 
+	FReply OnColorClicked(int32 ColorIndex);
 	FReply OnHostClicked();
 	FReply OnJoinClicked();
 };

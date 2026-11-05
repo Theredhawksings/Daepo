@@ -97,6 +97,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsDead() const { return bIsDead; }
 
+	/** 봇 고정 색(빨강)의 PlayerColors 번호. 플레이어는 이 색을 고를 수 없다. */
+	static constexpr int32 BotColorIndex = 1;
+
+	/** 메인 메뉴의 색 선택 버튼이 쓰는 색 목록 */
+	const TArray<FLinearColor>& GetPlayerColors() const { return PlayerColors; }
+
 	/** 켜두면, 일정 시간 동안 충분히 움직이지 않을 때 자동으로 피해를 입는다(장시간 정지 페널티) */
 	UPROPERTY(EditAnywhere, Category = "Health|Stillness Penalty")
 	bool bEnableStillnessPenalty = true;
@@ -122,13 +128,13 @@ protected:
 
 	/**
 	 * 서버에서 이 폰에 컨트롤러가 연결되는 시점(Possess). 여기서 서버가 이 플레이어의
-	 * 색 번호를 접속 순서대로 확정해서 PlayerColorIndex 에 배정한다(그 값이 복제되어
+	 * 색 번호(플레이어는 메뉴에서 고른 색, 봇은 빨강)를 확정해서 PlayerColorIndex 에 배정한다(그 값이 복제되어
 	 * 모든 클라이언트에 전달됨 — 각 클라이언트가 따로 계산하지 않으므로 항상 일치한다).
 	 */
 	virtual void PossessedBy(AController* NewController) override;
 
 	/**
-	 * 서버가 접속 순서대로 배정한 색 번호(0부터 시작). PlayerColors 배열의 인덱스로 쓰인다.
+	 * 서버가 배정한 색 번호(0부터 시작). PlayerColors 배열의 인덱스로 쓰인다.
 	 * -1 이면 아직 배정 전. 서버가 값을 정하고 복제하므로 모든 화면에서 항상 같은 색이 나온다.
 	 */
 	UPROPERTY(ReplicatedUsing = OnRep_PlayerColorIndex)

@@ -21,6 +21,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Network")
 	FName MainMenuMapName = FName(TEXT("/Game/Main"));
 
+	/** 메인 메뉴에서 고른 플레이어 색 번호. 맵을 옮겨도 유지되도록 게임 인스턴스에 둔다. */
+	int32 SelectedColorIndex = 0;
+
 	virtual void Init() override;
 
 private:

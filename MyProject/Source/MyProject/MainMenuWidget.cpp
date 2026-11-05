@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MainMenuWidget.h"
+#include "DaePoGameInstance.h"
+#include "MyProjectCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
 #include "Widgets/SBoxPanel.h"
@@ -35,6 +37,46 @@ namespace
 TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 {
 	constexpr float ContentWidth = 420.0f;
+
+	// 플레이어 색 선택 줄. 빨강은 봇 전용이라 뺀다. 고른 색은 흰 테두리로 표시한다.
+	TSharedRef<SHorizontalBox> ColorRow = SNew(SHorizontalBox);
+	const TArray<FLinearColor>& Colors = GetDefault<AMyProjectCharacter>()->GetPlayerColors();
+	for (int32 i = 0; i < Colors.Num(); ++i)
+	{
+		if (i == AMyProjectCharacter::BotColorIndex)
+		{
+			continue;
+		}
+
+		ColorRow->AddSlot()
+		.AutoWidth()
+		.Padding(4.0f, 0.0f)
+		[
+			SNew(SBorder)
+			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(TAttribute<FSlateColor>::CreateWeakLambda(this, [this, i]()
+			{
+				const UDaePoGameInstance* GI = Cast<UDaePoGameInstance>(GetGameInstance());
+				return FSlateColor((GI && GI->SelectedColorIndex == i) ? FLinearColor::White : FLinearColor::Transparent);
+			}))
+			.Padding(3.0f)
+			[
+				SNew(SBox)
+				.WidthOverride(36.0f)
+				.HeightOverride(36.0f)
+				[
+					SNew(SButton)
+					.ContentPadding(0.0f)
+					.OnClicked(FOnClicked::CreateUObject(this, &UMainMenuWidget::OnColorClicked, i))
+					[
+						SNew(SColorBlock)
+						.Color(Colors[i])
+						.Visibility(EVisibility::HitTestInvisible)
+					]
+				]
+			]
+		];
+	}
 
 	return SNew(SBox)
 		.HAlign(HAlign_Center)
@@ -77,6 +119,14 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 							.Text(FText::FromString(TEXT("최후의 1인 생존")))
 							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
 							.ColorAndOpacity(FLinearColor(0.7f, 0.7f, 0.7f))
+						]
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 0, 0, 20)
+						.HAlign(HAlign_Center)
+						[
+							ColorRow
 						]
 
 						+ SVerticalBox::Slot()
@@ -142,6 +192,15 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 				]
 			]
 		];
+}
+
+FReply UMainMenuWidget::OnColorClicked(int32 ColorIndex)
+{
+	if (UDaePoGameInstance* GI = Cast<UDaePoGameInstance>(GetGameInstance()))
+	{
+		GI->SelectedColorIndex = ColorIndex;
+	}
+	return FReply::Handled();
 }
 
 FReply UMainMenuWidget::OnHostClicked()

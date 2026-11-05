@@ -24,6 +24,7 @@
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameStateBase.h"
 #include "DaePoGameState.h"
+#include "DaePoGameInstance.h"
 #include "MyProjectGameMode.h"
 #include "MyProject.h"
 
@@ -208,15 +209,12 @@ void AMyProjectCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	// 서버에서만 실행됨. 아직 색이 배정 안 됐으면(-1) 이 레벨의 GameState 카운터에서
-	// 다음 번호를 받아 확정한다. 한 번 정해지면 절대 안 바뀌고, 이 값이 복제되어
-	// 모든 클라이언트가 똑같은 값을 받으므로 화면마다 색이 다르게 보이는 일이 없다.
+	// 서버에서만 실행됨. 봇은 빨강 고정, 플레이어는 메인 메뉴에서 고른 색을 쓴다.
+	// shortcut: 서버의 선택값을 읽으므로 원격 클라이언트도 호스트 색이 된다, 멀티를 되살리면 서버로 색을 보내야 한다.
 	if (PlayerColorIndex < 0)
 	{
-		if (ADaePoGameState* GS = GetWorld() ? GetWorld()->GetGameState<ADaePoGameState>() : nullptr)
-		{
-			PlayerColorIndex = GS->NextPlayerColorIndex++;
-		}
+		const UDaePoGameInstance* GI = GetGameInstance<UDaePoGameInstance>();
+		PlayerColorIndex = (NewController->IsPlayerController() && GI) ? GI->SelectedColorIndex : BotColorIndex;
 	}
 
 	UpdatePlayerColor();
