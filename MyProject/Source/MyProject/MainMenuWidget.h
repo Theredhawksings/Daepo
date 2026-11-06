@@ -22,6 +22,9 @@ private:
 	/** 메뉴 화면(0)과 맵 선택 화면(1)을 전환한다 */
 	TSharedPtr<class SWidgetSwitcher> ScreenSwitcher;
 
+	/** 맵 카드 썸네일. SImage 는 브러시를 포인터로만 들고 있어서 위젯이 살아있는 동안 여기서 유지한다. */
+	TArray<TSharedPtr<struct FSlateBrush>> ThumbnailBrushes;
+
 	FReply ShowScreen(int32 ScreenIndex);
 	FReply OnMapClicked(FName MapName);
 };

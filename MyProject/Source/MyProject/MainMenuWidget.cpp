@@ -5,6 +5,7 @@
 #include "MyProjectCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SNullWidget.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
@@ -13,6 +14,9 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Styling/CoreStyle.h"
+#include "Brushes/SlateImageBrush.h"
+#include "Widgets/Images/SImage.h"
+#include "Misc/Paths.h"
 
 namespace
 {
@@ -23,6 +27,7 @@ namespace
 	};
 
 	// 맵 선택 화면의 카드(위 3개, 아래 3개). 새 맵은 DefaultGame.ini 의 MapsToCook 에도 넣어야 패키징된다.
+	// 썸네일은 Content/Thumbnails/Map<카드번호>.png 를 쓰고, 파일이 없으면 글자만 나온다.
 	const FMapCard MapCards[] = {
 		{ TEXT("Map 1"), TEXT("/Game/ThirdPerson/Lvl_ThirdPerson") },
 		{ TEXT("Map 2"), TEXT("/Game/ThirdPerson/Lvl_ThirdPerson1") },
@@ -98,6 +103,16 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 	for (int32 i = 0; i < UE_ARRAY_COUNT(MapCards); ++i)
 	{
 		const bool bAvailable = MapCards[i].Path[0] != 0;
+
+		TSharedRef<SWidget> Thumbnail = SNullWidget::NullWidget;
+		const FString ImagePath = FPaths::ConvertRelativePathToFull(
+			FPaths::ProjectContentDir() / FString::Printf(TEXT("Thumbnails/Map%d.png"), i + 1));
+		if (FPaths::FileExists(ImagePath))
+		{
+			ThumbnailBrushes.Add(MakeShared<FSlateImageBrush>(FName(*ImagePath), FVector2D(212.0, 120.0)));
+			Thumbnail = SNew(SImage).Image(ThumbnailBrushes.Last().Get());
+		}
+
 		MapGrid->AddSlot(i % 3, i / 3)
 		[
 			SNew(SBox)
@@ -105,8 +120,30 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 			.HeightOverride(170.0f)
 			.IsEnabled(bAvailable)
 			[
-				MakeColoredButton(MapCards[i].Label, FLinearColor(0.15f, 0.35f, 0.75f),
-					FOnClicked::CreateUObject(this, &UMainMenuWidget::OnMapClicked, FName(MapCards[i].Path)))
+				SNew(SButton)
+				.ButtonColorAndOpacity(FLinearColor(0.15f, 0.35f, 0.75f))
+				.ContentPadding(4.0f)
+				.OnClicked(FOnClicked::CreateUObject(this, &UMainMenuWidget::OnMapClicked, FName(MapCards[i].Path)))
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					[
+						Thumbnail
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0, 4, 0, 2)
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString(MapCards[i].Label))
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 16))
+						.ColorAndOpacity(FLinearColor::White)
+					]
+				]
 			]
 		];
 	}
