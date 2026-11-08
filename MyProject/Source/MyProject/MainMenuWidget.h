@@ -25,6 +25,10 @@ private:
 	/** 맵 카드 썸네일. SImage 는 브러시를 포인터로만 들고 있어서 위젯이 살아있는 동안 여기서 유지한다. */
 	TArray<TSharedPtr<struct FSlateBrush>> ThumbnailBrushes;
 
+	/** 브러시는 텍스처를 GC 로부터 지켜주지 않으므로 여기서 참조를 잡아둔다 */
+	UPROPERTY()
+	TArray<TObjectPtr<class UTexture2D>> ThumbnailTextures;
+
 	FReply ShowScreen(int32 ScreenIndex);
 	FReply OnMapClicked(FName MapName);
 };

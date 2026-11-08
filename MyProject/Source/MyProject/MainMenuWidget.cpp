@@ -14,9 +14,8 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Styling/CoreStyle.h"
-#include "Brushes/SlateImageBrush.h"
+#include "Engine/Texture2D.h"
 #include "Widgets/Images/SImage.h"
-#include "Misc/Paths.h"
 
 namespace
 {
@@ -27,7 +26,7 @@ namespace
 	};
 
 	// 맵 선택 화면의 카드(위 3개, 아래 3개). 새 맵은 DefaultGame.ini 의 MapsToCook 에도 넣어야 패키징된다.
-	// 썸네일은 Content/Thumbnails/Map<카드번호>.png 를 쓰고, 파일이 없으면 글자만 나온다.
+	// 썸네일은 텍스처 에셋 /Game/Thumbnails/Map<카드번호> 를 쓰고, 없으면 글자만 나온다.
 	const FMapCard MapCards[] = {
 		{ TEXT("Map 1"), TEXT("/Game/ThirdPerson/Lvl_ThirdPerson") },
 		{ TEXT("Map 2"), TEXT("/Game/ThirdPerson/Lvl_ThirdPerson1") },
@@ -105,12 +104,15 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 		const bool bAvailable = MapCards[i].Path[0] != 0;
 
 		TSharedRef<SWidget> Thumbnail = SNullWidget::NullWidget;
-		const FString ImagePath = FPaths::ConvertRelativePathToFull(
-			FPaths::ProjectContentDir() / FString::Printf(TEXT("Thumbnails/Map%d.png"), i + 1));
-		if (FPaths::FileExists(ImagePath))
+		const FString TexturePath = FString::Printf(TEXT("/Game/Thumbnails/Map%d.Map%d"), i + 1, i + 1);
+		if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *TexturePath, nullptr, LOAD_NoWarn | LOAD_Quiet))
 		{
-			ThumbnailBrushes.Add(MakeShared<FSlateImageBrush>(FName(*ImagePath), FVector2D(212.0, 120.0)));
-			Thumbnail = SNew(SImage).Image(ThumbnailBrushes.Last().Get());
+			ThumbnailTextures.Add(Texture);
+			TSharedPtr<FSlateBrush> Brush = MakeShared<FSlateBrush>();
+			Brush->SetResourceObject(Texture);
+			Brush->ImageSize = FVector2D(212.0, 120.0);
+			ThumbnailBrushes.Add(Brush);
+			Thumbnail = SNew(SImage).Image(Brush.Get());
 		}
 
 		MapGrid->AddSlot(i % 3, i / 3)
