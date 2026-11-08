@@ -82,6 +82,12 @@ protected:
 	/** 디버그용: I 키로 내 캐릭터 무적을 켜고 끈다(Shipping 빌드에서는 키가 연결되지 않는다) */
 	void ToggleDebugInvulnerable();
 
+	/** 디버그용: O 키로 "지금 밟고 있는 물체" 표시를 켜고 끈다(Shipping 빌드에서는 키가 연결되지 않는다) */
+	void ToggleFloorDebug() { bShowFloorDebug = !bShowFloorDebug; }
+	bool bShowFloorDebug = false;
+
+	virtual void PlayerTick(float DeltaTime) override;
+
 	/** Returns true if the player should use UMG touch controls */
 	bool ShouldUseTouchControls() const;
 

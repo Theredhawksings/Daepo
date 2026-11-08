@@ -15,6 +15,9 @@
 #include "ResultWidget.h"
 #include "MyProjectCharacter.h"
 #include "Engine/Engine.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
 #include "InputCoreTypes.h"
 
 void AMyProjectPlayerController::BeginPlay()
@@ -114,6 +117,7 @@ void AMyProjectPlayerController::SetupInputComponent()
 			InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AMyProjectPlayerController::TogglePauseMenu);
 #if !UE_BUILD_SHIPPING
 			InputComponent->BindKey(EKeys::I, IE_Pressed, this, &AMyProjectPlayerController::ToggleDebugInvulnerable);
+			InputComponent->BindKey(EKeys::O, IE_Pressed, this, &AMyProjectPlayerController::ToggleFloorDebug);
 #endif
 		}
 	}
@@ -150,6 +154,45 @@ void AMyProjectPlayerController::TogglePauseMenu()
 		SetInputMode(FInputModeGameAndUI());
 		PauseMenuWidget->AddToViewport(10); // 대기실 UI 등보다 위에 그려지도록 ZOrder 를 높게
 	}
+}
+
+void AMyProjectPlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+
+#if !UE_BUILD_SHIPPING
+	const ACharacter* MyCharacter = Cast<ACharacter>(GetPawn());
+	if (!bShowFloorDebug || !GEngine || !MyCharacter)
+	{
+		return;
+	}
+
+	// 캐릭터 이동 컴포넌트가 "지금 서 있다"고 판단한 바닥 = 실제로 밟고 있는 물체.
+	const UCharacterMovementComponent* Movement = MyCharacter->GetCharacterMovement();
+	const FFindFloorResult& Floor = Movement->CurrentFloor;
+	const FHitResult& Hit = Floor.HitResult;
+	const AActor* HitActor = Hit.GetActor();
+	const UStaticMeshComponent* MeshComp = Cast<UStaticMeshComponent>(Hit.GetComponent());
+
+	FString ActorName = GetNameSafe(HitActor);
+#if WITH_EDITOR
+	if (HitActor)
+	{
+		ActorName = HitActor->GetActorLabel(); // 아웃라이너에 보이는 이름
+	}
+#endif
+
+	// 같은 키(9001)로 매 프레임 덮어써서 화면 위에 한 줄로 계속 갱신된다.
+	GEngine->AddOnScreenDebugMessage(9001, 0.0f, FColor::Yellow, FString::Printf(
+		TEXT("[밟은 물체] 액터: %s | 컴포넌트: %s | 메시: %s | 이동: %s | 걸을 수 있음: %s | 떠 있는 거리: %.1fcm"),
+		*ActorName, *GetNameSafe(Hit.GetComponent()), MeshComp ? *GetNameSafe(MeshComp->GetStaticMesh()) : TEXT("-"),
+		*Movement->GetMovementName(), Floor.IsWalkableFloor() ? TEXT("O") : TEXT("X"), Floor.FloorDist));
+
+	if (Hit.bBlockingHit)
+	{
+		DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 8.0f, 8, FColor::Red);
+	}
+#endif
 }
 
 void AMyProjectPlayerController::ToggleDebugInvulnerable()
