@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PauseMenuWidget.h"
+#include "DaePoFont.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/PlayerController.h"
 #include "Widgets/SBoxPanel.h"
@@ -31,7 +32,7 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(TEXT("PAUSED")))
-					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 28))
+					.Font(DaePoFont("Bold", 28))
 					.ColorAndOpacity(FLinearColor::White)
 				]
 
@@ -51,7 +52,7 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 						[
 							SNew(STextBlock)
 							.Text(FText::FromString(TEXT("Quit Game")))
-							.Font(FCoreStyle::GetDefaultFontStyle("Bold", 16))
+							.Font(DaePoFont("Bold", 16))
 							.ColorAndOpacity(FLinearColor::White)
 							.Justification(ETextJustify::Center)
 						]

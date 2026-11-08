@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "LobbyWidget.h"
+#include "DaePoFont.h"
 #include "LobbyGameMode.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/GameStateBase.h"
@@ -50,7 +51,7 @@ TSharedRef<SWidget> ULobbyWidget::RebuildWidget()
 	{
 		IPRowWidget = SNew(STextBlock)
 			.Text(FText::FromString(FString::Printf(TEXT("내 IP: %s"), *GetLocalIPAddressString())))
-			.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
+			.Font(DaePoFont("Regular", 14))
 			.ColorAndOpacity(FLinearColor(0.6f, 0.85f, 1.0f));
 	}
 
@@ -69,7 +70,7 @@ TSharedRef<SWidget> ULobbyWidget::RebuildWidget()
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(TEXT("Start Game")))
-					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 16))
+					.Font(DaePoFont("Bold", 16))
 					.ColorAndOpacity(FLinearColor::White)
 					.Justification(ETextJustify::Center)
 				]
@@ -79,7 +80,7 @@ TSharedRef<SWidget> ULobbyWidget::RebuildWidget()
 	{
 		BottomSlotWidget = SNew(STextBlock)
 			.Text(FText::FromString(TEXT("방장이 시작하기를 기다리는 중...")))
-			.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
+			.Font(DaePoFont("Regular", 14))
 			.ColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f));
 	}
 
@@ -106,7 +107,7 @@ TSharedRef<SWidget> ULobbyWidget::RebuildWidget()
 					[
 						SNew(STextBlock)
 						.Text(FText::FromString(TEXT("WAITING ROOM")))
-						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 28))
+						.Font(DaePoFont("Bold", 28))
 						.ColorAndOpacity(FLinearColor::White)
 					]
 
@@ -117,7 +118,7 @@ TSharedRef<SWidget> ULobbyWidget::RebuildWidget()
 					[
 						SAssignNew(PlayerCountText, STextBlock)
 						.Text(FText::FromString(TEXT("현재 인원: 0명")))
-						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 16))
+						.Font(DaePoFont("Regular", 16))
 						.ColorAndOpacity(FLinearColor(0.9f, 0.9f, 0.9f))
 					]
 
@@ -153,7 +154,7 @@ TSharedRef<SWidget> ULobbyWidget::RebuildWidget()
 							[
 								SNew(STextBlock)
 								.Text(FText::FromString(TEXT("나가기")))
-								.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
+								.Font(DaePoFont("Regular", 14))
 								.ColorAndOpacity(FLinearColor::White)
 								.Justification(ETextJustify::Center)
 							]

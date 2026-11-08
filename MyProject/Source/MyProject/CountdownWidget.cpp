@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "CountdownWidget.h"
+#include "DaePoFont.h"
 #include "DaePoGameState.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
@@ -16,7 +17,7 @@ TSharedRef<SWidget> UCountdownWidget::RebuildWidget()
 		[
 			SAssignNew(CountdownText, STextBlock)
 			.Text(FText::GetEmpty())
-			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 72))
+			.Font(DaePoFont("Bold", 72))
 			.ColorAndOpacity(FLinearColor::White)
 			.Justification(ETextJustify::Center)
 		];

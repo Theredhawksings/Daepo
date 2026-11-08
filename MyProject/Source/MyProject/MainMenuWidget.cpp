@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MainMenuWidget.h"
+#include "DaePoFont.h"
 #include "DaePoGameInstance.h"
 #include "MyProjectCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -47,7 +48,7 @@ namespace
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(Label))
-				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 16))
+				.Font(DaePoFont("Bold", 16))
 				.ColorAndOpacity(FLinearColor::White)
 				.Justification(ETextJustify::Center)
 			];
@@ -142,7 +143,7 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 					[
 						SNew(STextBlock)
 						.Text(FText::FromString(MapCards[i].Label))
-						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 16))
+						.Font(DaePoFont("Bold", 16))
 						.ColorAndOpacity(FLinearColor::White)
 					]
 				]
@@ -177,7 +178,7 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 						[
 							SNew(STextBlock)
 							.Text(FText::FromString(TEXT("DAEPO SURVIVAL")))
-							.Font(FCoreStyle::GetDefaultFontStyle("Bold", 30))
+							.Font(DaePoFont("Bold", 30))
 							.ColorAndOpacity(FLinearColor::White)
 							.Justification(ETextJustify::Center)
 						]
@@ -189,7 +190,7 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 						[
 							SNew(STextBlock)
 							.Text(FText::FromString(TEXT("최후의 1인 생존")))
-							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+							.Font(DaePoFont("Regular", 12))
 							.ColorAndOpacity(FLinearColor(0.7f, 0.7f, 0.7f))
 						]
 
@@ -235,7 +236,7 @@ TSharedRef<SWidget> UMainMenuWidget::RebuildWidget()
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(TEXT("맵 선택")))
-					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 26))
+					.Font(DaePoFont("Bold", 26))
 					.ColorAndOpacity(FLinearColor::White)
 				]
 
