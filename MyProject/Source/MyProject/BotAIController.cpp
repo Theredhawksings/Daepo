@@ -19,6 +19,10 @@ void ABotAIController::OnPossess(APawn* InPawn)
 		if (UCharacterMovementComponent* Movement = BotCharacter->GetCharacterMovement())
 		{
 			Movement->GetNavMovementProperties()->bUseAccelerationForPaths = true;
+
+			// 마주친 봇끼리 서로 옆으로 비켜 가게 하는 엔진 내장 회피(RVO).
+			Movement->bUseRVOAvoidance = true;
+			Movement->AvoidanceConsiderationRadius = 200.0f;
 		}
 	}
 
