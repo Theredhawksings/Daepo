@@ -250,6 +250,10 @@ void AMyProjectGameMode::SpawnBots()
 		{
 			BotController->Possess(BotPawn);
 		}
+		if (AMyProjectCharacter* BotChar = Cast<AMyProjectCharacter>(BotPawn))
+		{
+			BotChar->SetBotNumber(i + 1);
+		}
 	}
 }
 

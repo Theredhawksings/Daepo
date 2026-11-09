@@ -6,6 +6,7 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PointLightComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -76,7 +77,23 @@ AMyProjectCharacter::AMyProjectCharacter()
 	PlayerColorLight->AttenuationRadius = 200.0f;
 	PlayerColorLight->SourceRadius = 5.0f;
 	PlayerColorLight->CastShadows = false;
-	PlayerColorLight->SetLightColor(FLinearColor::White); // 순번을 알기 전 기본값. BeginPlay 에서 갱신됨.
+	PlayerColorLight->SetLightColor(FLinearColor::Blue); // 순번을 알기 전 기본값. BeginPlay 에서 갱신됨.
+
+	BotNumberText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("BotNumberText"));
+	BotNumberText->SetupAttachment(RootComponent);
+	BotNumberText->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
+	BotNumberText->SetHorizontalAlignment(EHTA_Center);
+	BotNumberText->SetVerticalAlignment(EVRTA_TextCenter);
+	BotNumberText->SetWorldSize(40.0f);
+	BotNumberText->SetTextRenderColor(FColor::White);
+	// 기본 텍스트 머티리얼은 조명을 받아서 바로 위 빨간 표시등에 물든다 - 조명 무시(Unlit) 머티리얼로 흰색 유지.
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> UnlitTextMat(TEXT("/Engine/EngineMaterials/UnlitText.UnlitText"));
+	if (UnlitTextMat.Succeeded())
+	{
+		BotNumberText->SetTextMaterial(UnlitTextMat.Object);
+	}
+	BotNumberText->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BotNumberText->SetHiddenInGame(true); // 봇 번호가 정해지면 보인다
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character)
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -220,6 +237,30 @@ void AMyProjectCharacter::PossessedBy(AController* NewController)
 	UpdatePlayerColor();
 }
 
+void AMyProjectCharacter::OnRep_BotNumber()
+{
+	if (BotNumberText && BotNumber > 0)
+	{
+		BotNumberText->SetText(FText::AsNumber(BotNumber));
+		BotNumberText->SetHiddenInGame(false);
+	}
+}
+
+void AMyProjectCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	// 텍스트는 한쪽 면만 보이므로 내 카메라 쪽으로 Yaw 만 돌린다.
+	if (BotNumber > 0 && BotNumberText)
+	{
+		if (const APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
+		{
+			const FVector ToCam = Cam->GetCameraLocation() - BotNumberText->GetComponentLocation();
+			BotNumberText->SetWorldRotation(FRotator(0.0f, ToCam.Rotation().Yaw, 0.0f));
+		}
+	}
+}
+
 void AMyProjectCharacter::OnRep_PlayerColorIndex()
 {
 	// 클라이언트에서 서버가 배정한 색 번호가 막 도착한 시점 — 이제 색을 반영한다.
@@ -267,6 +308,7 @@ void AMyProjectCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMyProjectCharacter, Health);
 	DOREPLIFETIME(AMyProjectCharacter, PlayerColorIndex);
+	DOREPLIFETIME(AMyProjectCharacter, BotNumber);
 }
 
 void AMyProjectCharacter::OnRep_Health(float OldHealth)
@@ -307,20 +349,8 @@ void AMyProjectCharacter::ApplyDamage(float DamageAmount)
 	Health = FMath::Clamp(Health - DamageAmount, 0.0f, MaxHealth);
 	const float ActualDamage = OldHealth - Health;
 
-	// GameState 의 플레이어 목록에서 내 순번을 찾아 "Player1", "Player2" 식으로 표시한다.
-	// (서버 로그 확인용 — 화면 메시지는 아래에서 각 플레이어 본인 화면에만 따로 띄운다)
-	FString PlayerLabel = TEXT("Player?");
-	if (const APlayerState* PS = GetPlayerState())
-	{
-		if (const AGameStateBase* GS = GetWorld() ? GetWorld()->GetGameState() : nullptr)
-		{
-			const int32 Index = GS->PlayerArray.IndexOfByKey(PS);
-			if (Index != INDEX_NONE)
-			{
-				PlayerLabel = FString::Printf(TEXT("Player%d"), Index + 1);
-			}
-		}
-	}
+	// 사람은 "플레이어", 봇은 머리 위 번호와 같은 "봇 N" 으로 표시한다.
+	const FString PlayerLabel = BotNumber > 0 ? FString::Printf(TEXT("봇 %d"), BotNumber) : FString(TEXT("플레이어"));
 
 	UE_LOG(LogMyProject, Log, TEXT("%s 피해량: -%.1f (체력 %.1f -> %.1f)"), *PlayerLabel, ActualDamage, OldHealth, Health);
 

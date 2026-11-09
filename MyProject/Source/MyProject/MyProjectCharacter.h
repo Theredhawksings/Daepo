@@ -12,6 +12,7 @@ class UCameraComponent;
 class UInputAction;
 class UAnimSequence;
 class UPointLightComponent;
+class UTextRenderComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -36,6 +37,10 @@ class AMyProjectCharacter : public ACharacter
 	/** 플레이어 구분용 색깔 표시등. 머리 위에서 순번별 색으로 빛나 은은한 림라이트 효과를 준다(보조 수단). */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UPointLightComponent* PlayerColorLight;
+
+	/** 봇 머리 위 번호(플레이어는 숨김) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UTextRenderComponent* BotNumberText;
 
 protected:
 
@@ -143,6 +148,21 @@ protected:
 	/** PlayerColorIndex 가 복제돼 도착했을 때(클라이언트) 호출 — 색을 갱신한다 */
 	UFUNCTION()
 	void OnRep_PlayerColorIndex();
+
+	/** 봇 번호(1부터). 0 이면 플레이어. GameMode 가 봇을 스폰할 때 정한다. */
+	UPROPERTY(ReplicatedUsing = OnRep_BotNumber)
+	int32 BotNumber = 0;
+
+	UFUNCTION()
+	void OnRep_BotNumber();
+
+public:
+	void SetBotNumber(int32 InNumber) { BotNumber = InNumber; OnRep_BotNumber(); }
+
+	/** 봇 번호가 내 화면 카메라를 보게 돌린다 */
+	virtual void Tick(float DeltaSeconds) override;
+
+protected:
 
 	/**
 	 * 순번별로 순환해서 쓸 플레이어 구분 색상 목록. 8명까지 서로 확실히 구별되는
