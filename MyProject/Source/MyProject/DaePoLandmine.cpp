@@ -39,6 +39,13 @@ ADaePoLandmine::ADaePoLandmine()
 	TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	TriggerSphere->SetGenerateOverlapEvents(true);
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> ExplosionVFXAsset(
+		TEXT("/Script/Niagara.NiagaraSystem'/Game/Fire_EXP_Vol01_Free/Niagara/EXP/NS_Sub_EXP_Small_002.NS_Sub_EXP_Small_002'"));
+	if (ExplosionVFXAsset.Succeeded())
+	{
+		ExplosionVFX = ExplosionVFXAsset.Object;
+	}
 }
 
 void ADaePoLandmine::BeginPlay()
@@ -125,4 +132,8 @@ void ADaePoLandmine::MulticastPlayExplosionEffects_Implementation()
 
 	// 실제 폭발 파티클을 아직 안 붙였다면, 범위를 눈으로 확인할 수 있게 와이어프레임 구를 잠깐 그린다.
 	DrawDebugSphere(GetWorld(), GetActorLocation(), DamageRadius, 12, FColor::Red, false, 1.0f, 0, 2.0f);
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ExplosionVFX, GetActorLocation(),
+	FRotator::ZeroRotator, FVector(ExplosionVFXScale));
+
+
 }

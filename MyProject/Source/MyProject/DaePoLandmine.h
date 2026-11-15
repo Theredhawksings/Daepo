@@ -4,12 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "DaePoLandmine.generated.h"
+
 
 class UStaticMeshComponent;
 class USphereComponent;
 class USoundBase;
 class UMaterialInterface;
+class UNiagaraSystem;
 
 /**
  * 밟으면 잠깐 뒤에 터지는 지뢰. GameMode 가 라운드 시작 시 맵 곳곳에 무작위로 배치하고,
@@ -46,6 +50,14 @@ public:
 	/** 폭발음(비우면 무음) */
 	UPROPERTY(EditAnywhere, Category = "Landmine")
 	TObjectPtr<USoundBase> ExplosionSound;
+
+	/** 폭발 이펙트(비우면 이펙트 없음) */
+	UPROPERTY(EditAnywhere, Category = "Landmine")
+	TObjectPtr<UNiagaraSystem> ExplosionVFX;
+
+	/** 폭발 이펙트 크기 배율(1 = 원래 크기) */
+	UPROPERTY(EditAnywhere, Category = "Landmine", meta = (ClampMin = "0.1"))
+	float ExplosionVFXScale = 20.0f;
 
 protected:
 	virtual void BeginPlay() override;
