@@ -103,10 +103,13 @@ void ADaePoLandmine::Explode()
 		World->OverlapMultiByObjectType(Overlaps, GetActorLocation(), FQuat::Identity,
 			FCollisionObjectQueryParams(ECC_Pawn), Sphere);
 
+		TSet<AMyProjectCharacter*> Damaged; // 캡슐+메시가 둘 다 잡혀 같은 캐릭터가 두 번 맞는 것 방지
 		for (const FOverlapResult& Overlap : Overlaps)
 		{
-			if (AMyProjectCharacter* Player = Cast<AMyProjectCharacter>(Overlap.GetActor()))
+			AMyProjectCharacter* Player = Cast<AMyProjectCharacter>(Overlap.GetActor());
+			if (Player && !Damaged.Contains(Player))
 			{
+				Damaged.Add(Player);
 				Player->ApplyDamageFromLocation(DamageAmount, GetActorLocation());
 			}
 		}
