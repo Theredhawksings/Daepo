@@ -27,9 +27,9 @@ class MYPROJECT_API ADaePoLandmine : public AActor
 public:
 	ADaePoLandmine();
 
-	/** 밟은 뒤 실제로 터지기까지 걸리는 시간(초) */
-	UPROPERTY(EditAnywhere, Category = "Landmine")
-	float ArmDelay = 0.7f;
+	/** 밟은 뒤 실제로 터지기까지 걸리는 시간(초). 0 이면 밟는 즉시 터진다. */
+	UPROPERTY(EditAnywhere, Category = "Landmine", meta = (ClampMin = "0.0"))
+	float ArmDelay = 0.0f;
 
 	/** 폭발 피해량 */
 	UPROPERTY(EditAnywhere, Category = "Landmine")

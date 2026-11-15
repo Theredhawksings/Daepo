@@ -83,8 +83,12 @@ void ADaePoLandmine::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedCompon
 		return;
 	}
 
-	// 밟은 순간 바로 터지지 않고, ArmDelay 뒤에 터지게 예약한다(도망칠 틈을 준다).
 	bArmed = true;
+	if (ArmDelay <= 0.0f)
+	{
+		Explode(); // SetTimer 는 0초를 주면 타이머를 지워버리므로 직접 호출
+		return;
+	}
 	GetWorldTimerManager().SetTimer(ExplodeTimerHandle, this, &ADaePoLandmine::Explode, ArmDelay, false);
 }
 
